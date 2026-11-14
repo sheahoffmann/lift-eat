@@ -1,0 +1,164 @@
+/* Lift & Eat design tokens.
+   Dark-first: near-black with a warm amber glow, one vivid orange accent.
+   Sizes are in rem so iOS Dynamic Type (via -apple-system-body) scales everything. */
+
+:root {
+  color-scheme: dark;
+
+  /* Surfaces */
+  --bg: #0a0807;
+  --glow-core: rgba(255, 110, 30, 0.22);
+  --glow-mid: rgba(122, 52, 16, 0.38);
+  --glow-edge: rgba(10, 8, 7, 0);
+  --surface: rgba(255, 244, 236, 0.055);
+  --surface-strong: rgba(255, 244, 236, 0.09);
+  --surface-raised: rgba(28, 22, 19, 0.72);
+  --hairline: rgba(255, 244, 236, 0.08);
+  --scrim: rgba(5, 4, 3, 0.6);
+  --card-shadow: 0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 20px 40px -24px rgba(0, 0, 0, 0.8);
+
+  /* Text */
+  --text: #f7f3f0;
+  --text-2: rgba(247, 243, 240, 0.68);
+  --text-3: rgba(247, 243, 240, 0.48);
+  --text-on-accent: #ffffff;
+
+  /* Accent: one orange. --accent for highlights/progress, --accent-fill for button backgrounds. */
+  --accent: #ff6a1a;
+  --accent-fill: #e9560a;
+  --accent-soft: rgba(255, 106, 26, 0.16);
+  --accent-glow: rgba(255, 106, 26, 0.55);
+  --accent-hot: #ffa865;
+
+  /* Inverted pill (active tab, secondary chips) */
+  --invert-bg: #f7f3f0;
+  --invert-text: #14100d;
+
+  /* Rings */
+  --ring-train: #ff6a1a;
+  --ring-fuel: #ffb067;
+  --ring-log: #ffe1c2;
+  --ring-track: rgba(255, 244, 236, 0.08);
+
+  /* Anatomy */
+  --body-fill-top: rgba(255, 236, 222, 0.26);
+  --body-fill-bottom: rgba(255, 236, 222, 0.07);
+  --body-stroke: rgba(255, 236, 222, 0.45);
+  --muscle-fill: rgba(255, 236, 222, 0.05);
+  --muscle-stroke: rgba(255, 236, 222, 0.2);
+
+  /* Card tiers */
+  --tier-bronze: linear-gradient(140deg, #3a2417 0%, #8a5634 45%, #2a1a10 100%);
+  --tier-silver: linear-gradient(140deg, #2b2d31 0%, #a7acb4 48%, #24262a 100%);
+  --tier-gold: linear-gradient(140deg, #3b2a0c 0%, #e0b04c 46%, #3a280a 100%);
+
+  /* Type (rem: 1rem = user's Dynamic Type body size, 17px by default) */
+  --font: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display', system-ui, 'Helvetica Neue', Arial, sans-serif;
+  --fs-caption: 0.72rem;
+  --fs-footnote: 0.8rem;
+  --fs-sub: 0.88rem;
+  --fs-body: 1rem;
+  --fs-title3: 1.18rem;
+  --fs-title2: 1.4rem;
+  --fs-title1: 1.7rem;
+  --fs-large: 2.05rem;
+  --fs-stat: 2rem;
+  --fs-hero-stat: 3.2rem;
+  --track-tight: -0.035em;
+  --track-title: -0.022em;
+
+  /* Spacing: 4pt rhythm */
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 20px;
+  --s-6: 24px;
+  --s-8: 32px;
+  --s-10: 40px;
+  --s-12: 48px;
+  --gutter: 20px;
+
+  /* Radius */
+  --r-sm: 12px;
+  --r-md: 20px;
+  --r-lg: 28px;
+  --r-xl: 34px;
+  --r-pill: 999px;
+
+  /* Motion */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --dur-fast: 140ms;
+  --dur-med: 260ms;
+
+  /* Layers */
+  --z-tabbar: 40;
+  --z-overlay: 100;
+
+  --tabbar-h: 64px;
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme='dark']) {
+    color-scheme: light;
+    --bg: #f6f2ee;
+    --glow-core: rgba(255, 128, 50, 0.2);
+    --glow-mid: rgba(255, 196, 150, 0.32);
+    --glow-edge: rgba(246, 242, 238, 0);
+    --surface: rgba(255, 255, 255, 0.72);
+    --surface-strong: rgba(255, 255, 255, 0.92);
+    --surface-raised: rgba(255, 255, 255, 0.86);
+    --hairline: rgba(40, 24, 14, 0.08);
+    --scrim: rgba(30, 20, 12, 0.35);
+    --card-shadow: 0 1px 0 rgba(255, 255, 255, 0.8) inset, 0 16px 36px -22px rgba(80, 40, 10, 0.35);
+    --text: #17110d;
+    --text-2: rgba(23, 17, 13, 0.68);
+    --text-3: rgba(23, 17, 13, 0.52);
+    --accent: #f25c0c;
+    --accent-fill: #e9560a;
+    --accent-soft: rgba(242, 92, 12, 0.12);
+    --accent-glow: rgba(242, 92, 12, 0.4);
+    --invert-bg: #17110d;
+    --invert-text: #f7f3f0;
+    --ring-train: #f25c0c;
+    --ring-fuel: #ff9a3c;
+    --ring-log: #c9824a;
+    --ring-track: rgba(40, 24, 14, 0.08);
+    --body-fill-top: rgba(60, 30, 14, 0.14);
+    --body-fill-bottom: rgba(60, 30, 14, 0.04);
+    --body-stroke: rgba(60, 30, 14, 0.28);
+    --muscle-fill: rgba(60, 30, 14, 0.04);
+    --muscle-stroke: rgba(60, 30, 14, 0.14);
+  }
+}
+
+:root[data-theme='light'] {
+  color-scheme: light;
+  --bg: #f6f2ee;
+  --glow-core: rgba(255, 128, 50, 0.2);
+  --glow-mid: rgba(255, 196, 150, 0.32);
+  --glow-edge: rgba(246, 242, 238, 0);
+  --surface: rgba(255, 255, 255, 0.72);
+  --surface-strong: rgba(255, 255, 255, 0.92);
+  --surface-raised: rgba(255, 255, 255, 0.86);
+  --hairline: rgba(40, 24, 14, 0.08);
+  --scrim: rgba(30, 20, 12, 0.35);
+  --card-shadow: 0 1px 0 rgba(255, 255, 255, 0.8) inset, 0 16px 36px -22px rgba(80, 40, 10, 0.35);
+  --text: #17110d;
+  --text-2: rgba(23, 17, 13, 0.68);
+  --text-3: rgba(23, 17, 13, 0.52);
+  --accent: #f25c0c;
+  --accent-soft: rgba(242, 92, 12, 0.12);
+  --accent-glow: rgba(242, 92, 12, 0.4);
+  --invert-bg: #17110d;
+  --invert-text: #f7f3f0;
+  --ring-train: #f25c0c;
+  --ring-fuel: #ff9a3c;
+  --ring-log: #c9824a;
+  --ring-track: rgba(40, 24, 14, 0.08);
+  --body-fill-top: rgba(60, 30, 14, 0.14);
+  --body-fill-bottom: rgba(60, 30, 14, 0.04);
+  --body-stroke: rgba(60, 30, 14, 0.28);
+  --muscle-fill: rgba(60, 30, 14, 0.04);
+  --muscle-stroke: rgba(60, 30, 14, 0.14);
+}
