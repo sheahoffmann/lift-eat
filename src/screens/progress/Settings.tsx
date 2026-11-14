@@ -216,10 +216,13 @@ export function Settings({ profile }: { profile: Profile }) {
           autoComplete="off"
           placeholder="Passcode (same as APP_PASSCODE on Netlify)"
           defaultValue={s.aiPasscode ?? ''}
-          onBlur={(e) => updateSettings(profile, { aiPasscode: e.target.value.trim() || undefined })}
+          onChange={(e) => updateSettings(profile, { aiPasscode: e.target.value.trim() || undefined })}
           aria-label="Photo and link reader passcode"
         />
-        <p className="caption">Lets you log food from a nutrition-label photo or a link. Each read costs about a cent on your Anthropic account.</p>
+        <p className="caption">
+          {s.aiPasscode ? <span className="accent">Saved ✓ </span> : null}
+          Lets you log food from a nutrition-label photo or a link. Each read costs about a cent on your Anthropic account.
+        </p>
       </section>
 
       <section className="stack gap-2">
