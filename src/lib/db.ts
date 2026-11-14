@@ -126,6 +126,25 @@ export type XPEvent = { id: string; date: string; amount: number; reason: string
 
 export type AchievementUnlock = { id: string; unlockedAt: string; seen?: boolean }
 
+/** A GPS-tracked (or GPX-imported) run. Points: [lat, lon, time ms, altitude | null, segment]. */
+export type RunRecord = {
+  id: string
+  status: 'active' | 'done'
+  source: 'gps' | 'gpx'
+  type: string
+  startedAt: string
+  endedAt?: string
+  points: [number, number, number, number | null, number][]
+  /** Paused intervals (ms timestamps); moving time excludes them. */
+  pauses: { start: number; end?: number }[]
+  distanceM?: number
+  movingSec?: number
+  splits?: number[]
+  elevGainM?: number
+  workoutId?: string
+  name?: string
+}
+
 /** A meal option the user added to the planner. */
 export type CustomMeal = {
   id: string
@@ -155,6 +174,7 @@ class LiftEatDB extends Dexie {
   achievements!: Table<AchievementUnlock, string>
   attributes!: Table<AttributeSnapshot, string>
   customMeals!: Table<CustomMeal, string>
+  runs!: Table<RunRecord, string>
 
   constructor() {
     super('lift-eat')
@@ -162,6 +182,9 @@ class LiftEatDB extends Dexie {
       plans: 'id, startDate, endDate',
       foodLog: 'id, date, slot, mealId',
       myFoods: 'id, name, lastUsed, barcode',
+    })
+    this.version(4).stores({
+      runs: 'id, workoutId, status',
     })
     this.version(3).stores({
       customMeals: 'id, slot',

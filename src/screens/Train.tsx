@@ -10,7 +10,8 @@ import { Icon } from '../components/Icon'
 import { Sheet } from '../components/Sheet'
 import { haptic } from '../lib/haptics'
 import { logCardio, phaseOf, startWorkout, useActiveWorkout, useWorkoutHistory, useWorkoutsOn } from '../lib/workoutStore'
-import { openWorkout, showRecap } from '../lib/ui'
+import { openRun, openWorkout, showRecap } from "../lib/ui"
+import { RunCard } from "./train/RunCard"
 import { daysBetween } from '../lib/season'
 import { weekStart } from '../lib/game'
 import { ExerciseDetail } from './train/ExerciseDetail'
@@ -166,6 +167,8 @@ export function Train({ profile }: { profile: Profile }) {
         )}
       </section>
 
+      <RunCard profile={profile} suggestedType={session.kind === "sprint" ? "Sprints + agility" : session.kind === "lift" ? "Easy run" : "Partner run"} />
+
       <section className="card stack gap-2" aria-label="Equipment profile">
         <span className="eyebrow" id="eq">
           Where are you training?
@@ -252,6 +255,10 @@ export function Train({ profile }: { profile: Profile }) {
       <Sheet open={cardioOpen} onClose={() => setCardioOpen(false)} title={session.name}>
         <CardioLogger
           session={session}
+          onTrack={() => {
+            setCardioOpen(false)
+            openRun(session.kind === "sprint" ? "Sprints + agility" : "Partner run")
+          }}
           onLog={async (c) => {
             const w = await logCardio(profile, day, c)
             setCardioOpen(false)
@@ -294,7 +301,7 @@ export function Train({ profile }: { profile: Profile }) {
   )
 }
 
-function CardioLogger({ session, onLog }: { session: SessionSummary; onLog: (c: { type: string; minutes: number; distanceMi?: number; mobility?: boolean }) => void }) {
+function CardioLogger({ session, onLog, onTrack }: { session: SessionSummary; onTrack: () => void; onLog: (c: { type: string; minutes: number; distanceMi?: number; mobility?: boolean }) => void }) {
   const types = session.cardio?.types ?? ['Easy run', 'Walk', 'Bike']
   const [type, setType] = useState(types[0])
   const [minutes, setMinutes] = useState(Math.round((session.minutes[0] + session.minutes[1]) / 2))
@@ -303,6 +310,10 @@ function CardioLogger({ session, onLog }: { session: SessionSummary; onLog: (c: 
   const [busy, setBusy] = useState(false)
   return (
     <div className="stack gap-4">
+      <button className="btn btn--primary btn--block" onClick={onTrack}>
+        <Icon name="run" size={18} /> Track it with GPS
+      </button>
+      <p className="caption" style={{ textAlign: "center" }}>Or log it by hand below (treadmill, bike, or a run you tracked elsewhere).</p>
       <p className="sub">{session.cardio?.note ?? session.focus}</p>
       <div className="tool-row" role="radiogroup" aria-label="Type">
         {types.map((t) => (

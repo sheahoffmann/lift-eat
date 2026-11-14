@@ -13,7 +13,9 @@ import { CelebrationLayer, RestTimerPill } from './components/Overlays'
 import { WorkoutView } from './screens/train/WorkoutView'
 import { WorkoutRecap } from './screens/train/WorkoutRecap'
 import { WeeklyRecap } from './screens/progress/WeeklyRecap'
-import { closeWorkout, showRecap, showWeekly, useUI } from './lib/ui'
+import { closeRun, closeWorkout, showRecap, showWeekly, useUI } from './lib/ui'
+import { RunTracker } from './screens/train/RunTracker'
+import { restoreActiveRun } from './lib/runTracker'
 import { useActiveWorkout } from './lib/workoutStore'
 import { persistGame, useGame } from './lib/game'
 import { celebrate, setCelebrationMode } from './lib/celebrate'
@@ -28,6 +30,9 @@ export default function App() {
   const active = useActiveWorkout()
   const game = useGame(profile)
   useCustomMealsSync()
+  useEffect(() => {
+    restoreActiveRun()
+  }, [])
   const settings = settingsOf(profile)
   const lastTier = useRef<string | null>(null)
 
@@ -44,7 +49,7 @@ export default function App() {
   // Save attribute history; celebrate newly unlocked cards and tier upgrades.
   useEffect(() => {
     // Hold unlock pop-ups until the workout and recap are closed, so they never interrupt.
-    if (!game || ui.recap || ui.workoutOpen || ui.weekly) return
+    if (!game || ui.recap || ui.workoutOpen || ui.weekly || ui.runOpen) return
     const t = setTimeout(async () => {
       const fresh = await persistGame(game)
       for (const a of fresh) celebrate({ kind: 'achievement', title: a.name, desc: a.desc, rarity: a.rarity })
@@ -93,6 +98,9 @@ export default function App() {
 
             <AnimatePresence>{ui.recap && <WorkoutRecap key={ui.recap.id} workout={ui.recap} profile={profile} onClose={() => showRecap(null)} />}</AnimatePresence>
             <AnimatePresence>{ui.weekly && <WeeklyRecap profile={profile} onClose={() => showWeekly(false)} />}</AnimatePresence>
+            <Sheet open={ui.runOpen} onClose={closeRun} title="Run" full bare>
+              <RunTracker profile={profile} onClose={closeRun} defaultType={ui.runType} />
+            </Sheet>
             <RestTimerPill />
             <CelebrationLayer />
           </>

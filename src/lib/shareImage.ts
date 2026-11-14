@@ -2,6 +2,8 @@
 // The anatomy figure is drawn with Path2D straight from the body map paths.
 import { bodyData } from '../anatomy/bodyData'
 import type { MuscleSlug } from '../anatomy/muscles'
+import type { RunPoint } from './runMath'
+import { projectRoute } from '../components/RunRoute'
 
 const W = 1080
 const H = 1350
@@ -88,6 +90,42 @@ export type WorkoutShare = {
   body: 'male' | 'female'
   muscles: Partial<Record<MuscleSlug, number>>
   footer: string
+  /** GPS route for runs: drawn instead of the body figure. */
+  route?: RunPoint[]
+  splits?: string[]
+}
+
+function drawRoute(ctx: CanvasRenderingContext2D, route: RunPoint[], x: number, y: number, w: number, h: number) {
+  const { paths, start, end } = projectRoute(route, w, h, 30)
+  ctx.save()
+  ctx.translate(x, y)
+  ctx.lineCap = 'round'
+  ctx.lineJoin = 'round'
+  for (const d of paths) {
+    const p = new Path2D(d)
+    ctx.shadowColor = ORANGE
+    ctx.shadowBlur = 40
+    ctx.strokeStyle = 'rgba(255,106,26,0.6)'
+    ctx.lineWidth = 16
+    ctx.stroke(p)
+    ctx.shadowBlur = 0
+    ctx.strokeStyle = '#ffa865'
+    ctx.lineWidth = 8
+    ctx.stroke(p)
+  }
+  if (start) {
+    ctx.fillStyle = '#f7f3f0'
+    ctx.beginPath()
+    ctx.arc(start[0], start[1], 12, 0, Math.PI * 2)
+    ctx.fill()
+  }
+  if (end) {
+    ctx.fillStyle = ORANGE
+    ctx.beginPath()
+    ctx.arc(end[0], end[1], 14, 0, Math.PI * 2)
+    ctx.fill()
+  }
+  ctx.restore()
 }
 
 export async function renderWorkoutImage(d: WorkoutShare): Promise<Blob | null> {
@@ -108,17 +146,24 @@ export async function renderWorkoutImage(d: WorkoutShare): Promise<Blob | null> 
     text(ctx, s.label, 80 + i * colW, 385, 28, 500, 'rgba(247,243,240,0.6)')
   })
 
-  // Anatomy, front + back
-  const fh = 560
-  const w1 = drawBody(ctx, d.body, 'front', d.muscles, 120, 440, fh)
-  drawBody(ctx, d.body, 'back', d.muscles, 120 + w1 + 40, 440, fh)
+  let px = 640
+  if (d.route && d.route.length > 1) {
+    // Run line takes the left side.
+    drawRoute(ctx, d.route, 60, 430, 560, 600)
+    px = 680
+  } else {
+    // Anatomy, front + back
+    const fh = 560
+    const w1 = drawBody(ctx, d.body, 'front', d.muscles, 120, 440, fh)
+    drawBody(ctx, d.body, 'back', d.muscles, 120 + w1 + 40, 440, fh)
+  }
 
-  // PRs
+  // PRs / splits
   let y = 470
-  const px = 640
-  text(ctx, d.prs.length ? 'NEW PRs' : 'SESSION', px, y, 28, 800, ORANGE)
+  const heading = d.splits?.length ? 'SPLITS' : d.prs.length ? 'NEW PRs' : 'SESSION'
+  text(ctx, heading, px, y, 28, 800, ORANGE)
   y += 50
-  const lines = d.prs.length ? d.prs.slice(0, 6) : ['Logged and done.', 'Consistency is the PR.']
+  const lines = d.splits?.length ? d.splits.slice(0, 8) : d.prs.length ? d.prs.slice(0, 6) : ['Logged and done.', 'Consistency is the PR.']
   for (const l of lines) {
     text(ctx, l.length > 26 ? l.slice(0, 25) + '…' : l, px, y, 32, 600)
     y += 52

@@ -22,7 +22,7 @@ import { MacroGoals } from '../components/MacroGoals'
 import { SoundtrackLibrary, SoundtrackPick } from "./Soundtrack"
 import { useGame } from '../lib/game'
 import { phaseOf, startWorkout, useActiveWorkout, useWorkoutsOn } from '../lib/workoutStore'
-import { openWorkout, showRecap, showWeekly } from '../lib/ui'
+import { openRun, openWorkout, showRecap, showWeekly } from '../lib/ui'
 import { daysBetween } from '../lib/season'
 import { celebrate } from '../lib/celebrate'
 import { useEffect, useRef } from 'react'
@@ -71,7 +71,7 @@ export function Today({ profile, go }: { profile: Profile; go: (t: TabKey) => vo
     if (session.kind === 'lift') {
       await startWorkout(profile, now.getDay())
       openWorkout()
-    } else go('train')
+    } else openRun(session.kind === 'sprint' ? 'Sprints + agility' : 'Partner run')
   }
 
   // Eat data
@@ -323,7 +323,7 @@ export function Today({ profile, go }: { profile: Profile; go: (t: TabKey) => vo
               </button>
             ) : (
               <button className="btn btn--primary btn--block" style={{ marginTop: 'var(--s-4)' }} onClick={startToday}>
-                <Icon name="play" size={18} /> {active ? 'Continue workout' : session.kind === 'lift' ? 'Start workout' : 'Log it'}
+                <Icon name="play" size={18} /> {active ? 'Continue workout' : session.kind === 'lift' ? 'Start workout' : 'Start run'}
               </button>
             )}
           </>
