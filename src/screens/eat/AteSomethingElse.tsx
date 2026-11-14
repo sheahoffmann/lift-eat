@@ -7,12 +7,13 @@ import { logOther, useMyFoods } from '../../lib/eatStore'
 import { haptic } from '../../lib/haptics'
 import { Icon } from '../../components/Icon'
 import { BarcodeScan } from './BarcodeScan'
+import { PhotoOrLink } from './PhotoOrLink'
 
 type Target = { slot: Slot | 'extra' | 'other'; replacesMealId?: string; replacing?: string }
 
 export function AteSomethingElse({ date, target, onDone }: { date: string; target: Target; onDone: () => void }) {
   const foods = useMyFoods()
-  const [tab, setTab] = useState<'mine' | 'quick' | 'scan'>(foods && foods.length === 0 ? 'quick' : 'mine')
+  const [tab, setTab] = useState<'mine' | 'photo' | 'quick' | 'scan'>(foods && foods.length === 0 ? 'quick' : 'mine')
   const [chosen, setChosen] = useState<MyFood | null>(null)
   const [servings, setServings] = useState(1)
   const [form, setForm] = useState({ name: '', cal: '', protein: '', carbs: '', fat: '' })
@@ -67,8 +68,9 @@ export function AteSomethingElse({ date, target, onDone }: { date: string; targe
       <div className="segmented" role="tablist">
         {(
           [
-            ['mine', 'My foods'],
-            ['quick', 'Quick add'],
+            ['mine', 'Mine'],
+            ['photo', 'Photo/link'],
+            ['quick', 'Quick'],
             ['scan', 'Scan'],
           ] as const
         ).map(([k, label]) => (
@@ -161,6 +163,7 @@ export function AteSomethingElse({ date, target, onDone }: { date: string; targe
       )}
 
       {effectiveTab === 'scan' && <BarcodeScan date={date} target={target} onDone={onDone} />}
+      {effectiveTab === 'photo' && <PhotoOrLink date={date} target={target} onDone={onDone} />}
     </div>
   )
 }

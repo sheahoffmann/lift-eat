@@ -30,8 +30,9 @@ export function scaledAmount(itemId: string, amount: number, portion: number) {
 }
 
 export function mealMacros(meal: MealOption, portion = 1): Macros {
-  if (meal.restaurant) {
-    const { cal, protein, carbs, fat } = meal.restaurant
+  const fixed = meal.restaurant ?? meal.custom
+  if (fixed) {
+    const { cal, protein, carbs, fat } = fixed
     return { cal, protein, carbs, fat }
   }
   return meal.ingredients.reduce((sum, ing) => {

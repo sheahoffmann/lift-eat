@@ -16,6 +16,8 @@ import {
   type PlannedMeal,
 } from '../lib/eatStore'
 import { calorieRange } from '../lib/nutrition'
+import { MacroGoals } from '../components/MacroGoals'
+import { macroTargets } from '../lib/profile'
 import { haptic } from '../lib/haptics'
 import { Icon } from '../components/Icon'
 import { Sheet } from '../components/Sheet'
@@ -53,7 +55,7 @@ export function Eat({ profile }: { profile: Profile }) {
         )}
       </header>
 
-      <TotalsCard eaten={t} profile={profile} />
+      <MacroGoals eaten={t} targets={macroTargets(profile)} calorieRange={calorieRange({ calories: profile.calorieTarget, protein: profile.proteinTarget })} />
 
       {loading ? (
         <div className="card" style={{ height: 220, opacity: 0.5 }} aria-busy="true" aria-label="Loading" />
@@ -136,48 +138,6 @@ export function Eat({ profile }: { profile: Profile }) {
         {other && <AteSomethingElse date={date} target={other} onDone={() => setOther(null)} />}
       </Sheet>
     </main>
-  )
-}
-
-function TotalsCard({ eaten, profile }: { eaten: { cal: number; protein: number; carbs: number; fat: number }; profile: Profile }) {
-  const [lo, hi] = calorieRange({ calories: profile.calorieTarget, protein: profile.proteinTarget })
-  const pPct = Math.min(1, eaten.protein / profile.proteinTarget)
-  const cPct = Math.min(1, eaten.cal / profile.calorieTarget)
-  const proteinHit = eaten.protein >= profile.proteinTarget - 5
-  const calInRange = eaten.cal >= lo && eaten.cal <= hi
-  return (
-    <section className="card" aria-label="Today's totals">
-      <div className="stats">
-        <div className="stat">
-          <span className="stat__value num">
-            {Math.round(eaten.protein)}
-            <span className="stat__unit">/ {profile.proteinTarget} g</span>
-          </span>
-          <span className="stat__label">Protein {proteinHit && <Icon name="check" size={12} strokeWidth={3} className="accent" />}</span>
-          <div className="bar" style={{ marginTop: 8 }}>
-            <motion.div className="bar__fill" animate={{ scaleX: Math.max(0.01, pPct) }} transition={{ type: 'spring', stiffness: 90, damping: 18 }} />
-          </div>
-        </div>
-        <div className="stat">
-          <span className="stat__value num">
-            {Math.round(eaten.cal).toLocaleString()}
-            <span className="stat__unit">/ {profile.calorieTarget.toLocaleString()}</span>
-          </span>
-          <span className="stat__label">Calories {calInRange && <Icon name="check" size={12} strokeWidth={3} className="accent" />}</span>
-          <div className="bar" style={{ marginTop: 8 }}>
-            <motion.div
-              className="bar__fill"
-              style={{ background: 'var(--ring-fuel)', boxShadow: 'none' }}
-              animate={{ scaleX: Math.max(0.01, cPct) }}
-              transition={{ type: 'spring', stiffness: 90, damping: 18 }}
-            />
-          </div>
-        </div>
-      </div>
-      <p className="caption num" style={{ marginTop: 'var(--s-3)' }}>
-        Carbs {Math.round(eaten.carbs)} g · Fat {Math.round(eaten.fat)} g · Range {lo.toLocaleString()}–{hi.toLocaleString()} cal
-      </p>
-    </section>
   )
 }
 

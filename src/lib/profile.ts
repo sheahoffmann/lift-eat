@@ -12,6 +12,9 @@ export type Profile = {
   proteinTarget: number
   startDate: string // ISO date, Preseason starts here
   createdAt: string
+  /** Optional explicit macro targets (grams). When unset, derived from calories + protein. */
+  carbTarget?: number
+  fatTarget?: number
   /** Optional countdown target, e.g. a trip. Stored only on this phone. */
   goal?: { label: string; date: string }
   settings?: Partial<Settings>
@@ -33,6 +36,8 @@ export type Settings = {
   buildStartedAt?: string
   units: 'lb'
   sound: boolean
+  /** Shared passcode for the label-photo / link reader (matches APP_PASSCODE on Netlify). */
+  aiPasscode?: string
   /** Mondays of weeks marked as deload (half sets; never break a streak). */
   deloadWeeks?: string[]
 }
@@ -117,4 +122,13 @@ export function todayISO(d = new Date()) {
   const m = String(d.getMonth() + 1).padStart(2, '0')
   const day = String(d.getDate()).padStart(2, '0')
   return `${y}-${m}-${day}`
+}
+
+export type MacroTargets = { calories: number; protein: number; carbs: number; fat: number }
+
+/** Daily macro goals. Fat defaults to ~28% of calories; carbs fill the rest. */
+export function macroTargets(p: Profile): MacroTargets {
+  const fat = p.fatTarget ?? Math.round((p.calorieTarget * 0.28) / 9)
+  const carbs = p.carbTarget ?? Math.max(0, Math.round((p.calorieTarget - p.proteinTarget * 4 - fat * 9) / 4))
+  return { calories: p.calorieTarget, protein: p.proteinTarget, carbs, fat }
 }

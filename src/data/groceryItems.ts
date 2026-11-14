@@ -2,7 +2,7 @@
 // Nutrition is per base unit: per gram for 'g' items, per piece for 'each' items.
 // Values are typical label numbers for common US grocery products.
 
-export type StoreSection = 'Produce' | 'Meat & Seafood' | 'Dairy & Eggs' | 'Frozen' | 'Bakery' | 'Pantry' | 'Drinks'
+export type StoreSection = 'Produce' | 'Meat & Seafood' | 'Dairy & Eggs' | 'Frozen' | 'Bakery' | 'Pantry' | 'Drinks' | 'Other'
 
 export type GroceryItem = {
   id: string
@@ -22,6 +22,8 @@ export type GroceryItem = {
   frozen?: boolean
   /** Long-life staples worth asking "still have it?" about. */
   staple?: boolean
+  /** Free-text unit for user-added items (e.g. "cups"); amounts are shown as-is, not as packs. */
+  customUnit?: string
 }
 
 const per100 = (cal: number, protein: number, carbs: number, fat: number) => ({
@@ -39,6 +41,7 @@ const items: GroceryItem[] = [
   { id: 'cheese-slices', name: 'Cheddar cheese slices', section: 'Dairy & Eggs', unit: 'each', cal: 70, protein: 5, carbs: 1, fat: 5, packSize: 12, packLabel: '12-slice pack', shelfDays: 21 },
   { id: 'cottage-cheese', name: 'Low-fat cottage cheese', section: 'Dairy & Eggs', unit: 'g', ...per100(84, 11, 4.3, 2.3), packSize: 680, packLabel: '24 oz tub', shelfDays: 10 },
   { id: 'cottage-cup', name: 'Cottage cheese single cups', section: 'Dairy & Eggs', unit: 'each', cal: 140, protein: 19, carbs: 5, fat: 4.5, packSize: 4, packLabel: '4-pack', shelfDays: 21 },
+  { id: 'whole-milk', name: 'Whole milk', section: 'Dairy & Eggs', unit: 'g', ...per100(61, 3.2, 4.8, 3.3), packSize: 3785, packLabel: 'gallon', shelfDays: 10 },
   { id: 'string-cheese', name: 'String cheese', section: 'Dairy & Eggs', unit: 'each', cal: 80, protein: 7, carbs: 1, fat: 5, packSize: 12, packLabel: '12-pack', shelfDays: 30 },
   { id: 'guac-cups', name: 'Guacamole single cups', section: 'Dairy & Eggs', unit: 'each', cal: 100, protein: 1, carbs: 5, fat: 9, packSize: 6, packLabel: '6-pack', shelfDays: 21 },
 
@@ -81,4 +84,4 @@ const items: GroceryItem[] = [
 
 export const groceryItems: Record<string, GroceryItem> = Object.fromEntries(items.map((i) => [i.id, i]))
 
-export const sectionOrder: StoreSection[] = ['Produce', 'Meat & Seafood', 'Dairy & Eggs', 'Bakery', 'Frozen', 'Pantry', 'Drinks']
+export const sectionOrder: StoreSection[] = ['Produce', 'Meat & Seafood', 'Dairy & Eggs', 'Bakery', 'Frozen', 'Pantry', 'Drinks', 'Other']

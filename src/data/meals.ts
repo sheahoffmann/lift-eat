@@ -18,7 +18,11 @@ export type MealOption = {
   ingredients: Ingredient[]
   /** Restaurant meals carry fixed macros and never go on the grocery list. */
   restaurant?: { cal: number; protein: number; carbs: number; fat: number; order: string }
+  /** User-added option: fixed macros per serving + free-text grocery lines. */
+  custom?: { cal: number; protein: number; carbs: number; fat: number; groceries: CustomGrocery[] }
 }
+
+export type CustomGrocery = { name: string; amount: number; unit: string }
 
 export const slotMeta: Record<Slot, { label: string; time: string; startHour: number; required: boolean }> = {
   breakfast: { label: 'Breakfast', time: '7–8 am', startHour: 7, required: true },
@@ -78,6 +82,20 @@ export const mealOptions: MealOption[] = [
     ingredients: [
       { item: 'core-power', amount: 1 },
       { item: 'banana', amount: 1 },
+    ],
+  },
+
+  {
+    id: 'whey-milk-breakfast',
+    slot: 'breakfast',
+    name: 'Whey shake + whole milk',
+    desc: 'Your own shake: a scoop of whey blended or shaken with whole milk.',
+    prep: 'No cook',
+    minutes: 1,
+    steps: ['1 scoop whey + 12 oz whole milk. Shake or blend.'],
+    ingredients: [
+      { item: 'whey', amount: 1, note: '1 scoop' },
+      { item: 'whole-milk', amount: 340, note: '12 oz' },
     ],
   },
 
@@ -141,6 +159,19 @@ export const mealOptions: MealOption[] = [
     minutes: 0,
     steps: ['Drink it.'],
     ingredients: [{ item: 'core-power', amount: 1 }],
+  },
+  {
+    id: 'whey-milk-snack',
+    slot: 'snack',
+    name: 'Whey shake + whole milk',
+    desc: 'A scoop of whey shaken with whole milk.',
+    prep: 'No cook',
+    minutes: 1,
+    steps: ['1 scoop whey + 12 oz whole milk. Shake or blend.'],
+    ingredients: [
+      { item: 'whey', amount: 1, note: '1 scoop' },
+      { item: 'whole-milk', amount: 340, note: '12 oz' },
+    ],
   },
   {
     id: 'jerky-apple',
@@ -293,6 +324,15 @@ export const mealOptions: MealOption[] = [
 
 export const mealsById: Record<string, MealOption> = Object.fromEntries(mealOptions.map((m) => [m.id, m]))
 
+// User-added options live in IndexedDB; the app registers them here on load.
+let customMeals: MealOption[] = []
+
+export function setCustomMeals(list: MealOption[]) {
+  for (const m of customMeals) delete mealsById[m.id]
+  customMeals = list
+  for (const m of list) mealsById[m.id] = m
+}
+
 export function optionsFor(slot: Slot | 'extra') {
-  return mealOptions.filter((m) => m.slot === slot)
+  return [...mealOptions, ...customMeals].filter((m) => m.slot === slot)
 }

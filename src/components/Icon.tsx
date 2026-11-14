@@ -76,6 +76,13 @@ const paths: Record<string, React.ReactNode> = {
     </>
   ),
   moon: <path d="M19.5 14.5A8 8 0 0 1 9.5 4.5a8 8 0 1 0 10 10z" />,
+  headphones: (
+    <>
+      <path d="M4 15v-3a8 8 0 0 1 16 0v3" />
+      <rect x="3" y="14" width="4.5" height="6.5" rx="2" />
+      <rect x="16.5" y="14" width="4.5" height="6.5" rx="2" />
+    </>
+  ),
   gear: (
     <>
       <circle cx="12" cy="12" r="3" />

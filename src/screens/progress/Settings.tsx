@@ -1,7 +1,7 @@
 // Settings: targets, phase, schedule, equipment, rest, celebrations, data.
 import { useRef, useState } from 'react'
 import { motion } from 'motion/react'
-import { saveProfile, settingsOf, todayISO, updateSettings, type EquipmentProfileKey, type Profile } from '../../lib/profile'
+import { macroTargets, saveProfile, settingsOf, todayISO, updateSettings, type EquipmentProfileKey, type Profile } from '../../lib/profile'
 import type { Equipment } from '../../data/exerciseTypes'
 import { useTheme, type ThemePref } from '../../lib/theme'
 import { exportCSV, exportJSON, restoreBackup } from '../../lib/backup'
@@ -81,8 +81,18 @@ export function Settings({ profile }: { profile: Profile }) {
         <div className="card" style={{ padding: 'var(--s-2) var(--s-4)' }}>
           <NumberRow label="Calories" value={profile.calorieTarget} step={50} min={1200} max={5000} onChange={(n) => set({ calorieTarget: n })} />
           <NumberRow label="Protein" value={profile.proteinTarget} step={5} min={60} max={350} suffix=" g" onChange={(n) => set({ proteinTarget: n })} />
+          <NumberRow label="Carbs" value={macroTargets(profile).carbs} step={5} min={0} max={800} suffix=" g" onChange={(n) => set({ carbTarget: n })} />
+          <NumberRow label="Fat" value={macroTargets(profile).fat} step={5} min={20} max={300} suffix=" g" onChange={(n) => set({ fatTarget: n })} />
         </div>
-        <p className="caption">Weekly check-ins suggest ±150 calorie changes based on your weight trend.</p>
+        <p className="caption">
+          Carbs and fat {profile.carbTarget == null && profile.fatTarget == null ? 'adjust automatically with your calories (fat ≈ 28%, carbs fill the rest)' : 'are set manually'}.{' '}
+          {(profile.carbTarget != null || profile.fatTarget != null) && (
+            <button className="link-btn" style={{ minHeight: 0, padding: 0 }} onClick={() => set({ carbTarget: undefined, fatTarget: undefined })}>
+              Back to automatic
+            </button>
+          )}{' '}
+          Weekly check-ins suggest ±150 calorie changes based on your weight trend.
+        </p>
       </section>
 
       <section className="stack gap-2">
@@ -196,6 +206,20 @@ export function Settings({ profile }: { profile: Profile }) {
         <button className="link-btn" style={{ alignSelf: 'flex-start', paddingLeft: 0 }} onClick={askNotificationPermission}>
           Allow notifications
         </button>
+      </section>
+
+      <section className="stack gap-2">
+        <h3 className="eyebrow">Photo &amp; link reader</h3>
+        <input
+          className="field"
+          type="password"
+          autoComplete="off"
+          placeholder="Passcode (same as APP_PASSCODE on Netlify)"
+          defaultValue={s.aiPasscode ?? ''}
+          onBlur={(e) => updateSettings(profile, { aiPasscode: e.target.value.trim() || undefined })}
+          aria-label="Photo and link reader passcode"
+        />
+        <p className="caption">Lets you log food from a nutrition-label photo or a link. Each read costs about a cent on your Anthropic account.</p>
       </section>
 
       <section className="stack gap-2">

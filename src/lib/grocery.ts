@@ -26,6 +26,27 @@ export type GroceryList = {
 export const PLAN_DAYS = 7
 const TOPUP_DAY = 3 // 4th day of the plan
 
+// Free-text items from user-added meals (e.g. "Whole milk, 16 oz").
+const customItems = new Map<string, GroceryItem>()
+const customItemId = (name: string, unit: string) => `custom:${name.trim().toLowerCase()}|${unit.trim().toLowerCase()}`
+function customItem(name: string, unit: string): GroceryItem {
+  return {
+    id: customItemId(name, unit),
+    name: name.trim(),
+    section: 'Other',
+    unit: 'each',
+    cal: 0,
+    protein: 0,
+    carbs: 0,
+    fat: 0,
+    packSize: 1,
+    packLabel: unit.trim(),
+    shelfDays: 30,
+    customUnit: unit.trim(),
+  }
+}
+const itemFor = (id: string) => groceryItems[id] ?? customItems.get(id)
+
 export function weekIngredientTotals(picks: Picks, portion: number) {
   // itemId → [amount for days before top-up, amount from top-up day on]
   const totals = new Map<string, { early: number; late: number; usedIn: Set<string> }>()
@@ -35,6 +56,17 @@ export function weekIngredientTotals(picks: Picks, portion: number) {
       const meal = mealsById[id]
       if (meal.restaurant) {
         restaurant.add(meal.name)
+        continue
+      }
+      if (meal.custom) {
+        for (const g of meal.custom.groceries) {
+          const id = customItemId(g.name, g.unit)
+          customItems.set(id, customItem(g.name, g.unit))
+          const t = totals.get(id) ?? { early: 0, late: 0, usedIn: new Set<string>() }
+          t.early += g.amount // custom items aren't split into a top-up
+          t.usedIn.add(meal.name)
+          totals.set(id, t)
+        }
         continue
       }
       for (const ing of meal.ingredients) {
@@ -54,7 +86,7 @@ export function weekIngredientTotals(picks: Picks, portion: number) {
 export function stapleCandidates(picks: Picks, portion: number) {
   const { totals } = weekIngredientTotals(picks, portion)
   return [...totals.keys()]
-    .map((id) => groceryItems[id])
+    .map((id) => itemFor(id)!)
     .filter((i) => i && (i.staple || i.frozen))
     .sort((a, b) => a.name.localeCompare(b.name))
 }
@@ -66,7 +98,7 @@ export function buildGroceryList(picks: Picks, portion: number, pantryHave: stri
   const skipped: GroceryItem[] = []
 
   for (const [id, t] of totals) {
-    const item = groceryItems[id]
+    const item = itemFor(id)
     if (!item) continue
     if (pantryHave.includes(id)) {
       skipped.push(item)
@@ -97,6 +129,7 @@ export function buildGroceryList(picks: Picks, portion: number, pantryHave: stri
 /** "2 × 32 oz tub" or "7 bananas". */
 export function packText(line: GroceryLine) {
   const { item, packs } = line
+  if (item.customUnit != null) return `${Math.round(line.amount * 10) / 10} ${item.customUnit} for the week`
   if (item.packSize === 1) return `${packs} ${item.packLabel}${packs === 1 ? '' : item.packLabel.endsWith('h') ? 'es' : 's'}`
   return `${packs} × ${item.packLabel}`
 }
@@ -104,6 +137,7 @@ export function packText(line: GroceryLine) {
 /** What the week actually uses, in US units. */
 export function needText(line: GroceryLine) {
   const { item, amount } = line
+  if (item.customUnit != null) return ''
   if (item.unit === 'each') return item.packSize === 1 ? '' : `uses ${amount}`
   const oz = amount / 28.35
   return oz >= 32 ? `uses ${(oz / 16).toFixed(1)} lb` : `uses ${Math.round(oz)} oz`

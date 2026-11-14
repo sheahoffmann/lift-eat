@@ -126,6 +126,20 @@ export type XPEvent = { id: string; date: string; amount: number; reason: string
 
 export type AchievementUnlock = { id: string; unlockedAt: string; seen?: boolean }
 
+/** A meal option the user added to the planner. */
+export type CustomMeal = {
+  id: string
+  slot: 'breakfast' | 'lunch' | 'snack' | 'dinner' | 'evening'
+  name: string
+  desc: string
+  cal: number
+  protein: number
+  carbs: number
+  fat: number
+  groceries: { name: string; amount: number; unit: string }[]
+  createdAt: string
+}
+
 export type AttributeSnapshot = { date: string; strength: number; power: number; engine: number; discipline: number; ovr: number }
 
 class LiftEatDB extends Dexie {
@@ -140,6 +154,7 @@ class LiftEatDB extends Dexie {
   xp!: Table<XPEvent, string>
   achievements!: Table<AchievementUnlock, string>
   attributes!: Table<AttributeSnapshot, string>
+  customMeals!: Table<CustomMeal, string>
 
   constructor() {
     super('lift-eat')
@@ -147,6 +162,9 @@ class LiftEatDB extends Dexie {
       plans: 'id, startDate, endDate',
       foodLog: 'id, date, slot, mealId',
       myFoods: 'id, name, lastUsed, barcode',
+    })
+    this.version(3).stores({
+      customMeals: 'id, slot',
     })
     this.version(2).stores({
       workouts: 'id, date, sessionKey, finishedAt',

@@ -129,3 +129,35 @@ describe('grocery list', () => {
     expect(rice.packs).toBe(7)
   })
 })
+
+describe('custom meals', () => {
+  it('count toward totals and add free-text items to the grocery list', async () => {
+    const { setCustomMeals } = await import('../data/meals')
+    const { toMealOption } = await import('./customMeals')
+    setCustomMeals([
+      toMealOption({
+        id: 'custom-shake',
+        slot: 'snack',
+        name: 'My shake',
+        desc: '',
+        cal: 450,
+        protein: 50,
+        carbs: 25,
+        fat: 16,
+        groceries: [
+          { name: 'Whole milk', amount: 16, unit: 'oz' },
+          { name: 'Whey', amount: 2, unit: 'scoops' },
+        ],
+        createdAt: '',
+      }),
+    ])
+    const p = picks({ snack: 'custom-shake' })
+    const base = dayVariants(picks({}), 1)[0]
+    const withShake = dayVariants(p, 1)[0]
+    expect(Math.round(withShake.cal - base.cal)).toBe(450 - round(mealMacros(mealsById['snack-shake'])).cal)
+    const list = buildGroceryList(p, 1)
+    const milk = list.shop.Other.find((l) => l.item.name === 'Whole milk')!
+    expect(milk.amount).toBe(16 * 7)
+    setCustomMeals([])
+  })
+})

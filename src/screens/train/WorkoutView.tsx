@@ -25,6 +25,7 @@ import { Icon } from '../../components/Icon'
 import { Sheet } from '../../components/Sheet'
 import { ExerciseDetail } from './ExerciseDetail'
 import { SwapSheet } from './SwapSheet'
+import { SoundtrackLibrary } from '../Soundtrack'
 
 type Item = Workout['plan'][number]
 
@@ -63,6 +64,7 @@ export function WorkoutView({
   const [note, setNote] = useState<number | null>(null)
   const [confirmEnd, setConfirmEnd] = useState(false)
   const [finishing, setFinishing] = useState(false)
+  const [listen, setListen] = useState(false)
 
   useEffect(() => {
     askNotificationPermission()
@@ -104,7 +106,10 @@ export function WorkoutView({
           <button className="icon-btn" onClick={onMinimize} aria-label="Minimize workout">
             <Icon name="chevron" size={18} className="rot90" />
           </button>
-          <div className="stack" style={{ alignItems: 'center' }}>
+          <button className="icon-btn" onClick={() => setListen(true)} aria-label="Soundtrack">
+            <Icon name="headphones" size={18} />
+          </button>
+          <div className="stack" style={{ alignItems: 'center', flex: 1 }}>
             <span style={{ fontWeight: 700 }}>{workout.name}</span>
             <span className="caption num">
               {formatSeconds(elapsed)} · {doneSets}/{totalSets} sets
@@ -205,6 +210,10 @@ export function WorkoutView({
             }}
           />
         )}
+      </Sheet>
+
+      <Sheet open={listen} onClose={() => setListen(false)} title="Soundtrack">
+        <SoundtrackLibrary kind={workout.kind === 'sprint' ? 'sprint' : workout.kind === 'lift' ? 'lift' : 'run'} />
       </Sheet>
 
       <Sheet open={confirmEnd} onClose={() => setConfirmEnd(false)} title="Finish workout?">

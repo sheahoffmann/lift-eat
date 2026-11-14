@@ -17,7 +17,9 @@ import { Planner } from './eat/Planner'
 import { addDays, logPlanned, nextMeal, plannedMealsFor, totals, useDayLog, useLatestPlan, usePlanFor } from '../lib/eatStore'
 import { calorieRange } from '../lib/nutrition'
 import { mealsById, slotMeta } from '../data/meals'
-import { settingsOf } from '../lib/profile'
+import { macroTargets, settingsOf } from '../lib/profile'
+import { MacroGoals } from '../components/MacroGoals'
+import { SoundtrackLibrary, SoundtrackPick } from "./Soundtrack"
 import { useGame } from '../lib/game'
 import { phaseOf, startWorkout, useActiveWorkout, useWorkoutsOn } from '../lib/workoutStore'
 import { openWorkout, showRecap, showWeekly } from '../lib/ui'
@@ -84,6 +86,7 @@ export function Today({ profile, go }: { profile: Profile; go: (t: TabKey) => vo
   const fuelClosed = eaten.protein >= profile.proteinTarget - 5 && eaten.cal >= lo && eaten.cal <= hi
   const mealsLogged = meals.filter((m) => m.entry).length
   const [planning, setPlanning] = useState(false)
+  const [listenOpen, setListenOpen] = useState(false)
 
   const rings: RingValues = {
     train: trained || session.kind === 'rest' || session.kind === 'optional' ? 1 : active ? 0.5 : 0,
@@ -184,6 +187,10 @@ export function Today({ profile, go }: { profile: Profile; go: (t: TabKey) => vo
           />
         </div>
       </motion.section>
+
+      <motion.div {...enter(2)}>
+        <MacroGoals eaten={eaten} targets={macroTargets(profile)} calorieRange={[lo, hi]} />
+      </motion.div>
 
       {plan === undefined ? null : plan && upNext ? (
         <motion.section {...enter(3)} className="card card--hero card--glow" aria-labelledby="next-meal">
@@ -326,6 +333,13 @@ export function Today({ profile, go }: { profile: Profile; go: (t: TabKey) => vo
           </p>
         )}
       </motion.section>
+
+      <motion.div {...enter(5)}>
+        <SoundtrackPick kind={session.kind} onMore={() => setListenOpen(true)} />
+      </motion.div>
+      <Sheet open={listenOpen} onClose={() => setListenOpen(false)} title="Soundtrack">
+        <SoundtrackLibrary kind={session.kind} />
+      </Sheet>
 
       <motion.div {...enter(5)}>
         <WeighInCard logged={todayWeigh?.lb} last={weighIns.at(-1)?.lb} />

@@ -3,7 +3,6 @@ import { useMemo, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import type { Profile } from '../../lib/profile'
 import { todayISO } from '../../lib/profile'
-import type { Picks, WeekPlan } from '../../lib/db'
 import { mealsById, optionsFor, slotMeta, type MealOption, type Slot } from '../../data/meals'
 import {
   calorieRange,
@@ -24,6 +23,12 @@ import { lockPlan } from '../../lib/eatStore'
 import { haptic } from '../../lib/haptics'
 import { Icon } from '../../components/Icon'
 import { GroceryListView } from './GroceryList'
+import { CustomMealForm } from './CustomMealForm'
+import { Sheet } from '../../components/Sheet'
+import { useLiveQuery } from 'dexie-react-hooks'
+import { db, type CustomMeal, type Picks, type WeekPlan } from '../../lib/db'
+import { deleteCustomMeal, toMealOption } from '../../lib/customMeals'
+import { setCustomMeals } from '../../data/meals'
 
 type Step = Slot | 'review' | 'kitchen' | 'done'
 const steps: Step[] = ['breakfast', 'lunch', 'snack', 'dinner', 'evening', 'review', 'kitchen', 'done']
@@ -304,6 +309,8 @@ function SlotStep({
   multi?: boolean
 }) {
   const meta = slotMeta[slot]
+  const mine = useLiveQuery(() => db.customMeals.where('slot').equals(slot).toArray(), [slot], [] as CustomMeal[])
+  const [form, setForm] = useState<{ existing?: CustomMeal } | null>(null)
   return (
     <>
       <header className="stack gap-1" style={{ marginTop: 'var(--s-2)' }}>
@@ -324,7 +331,48 @@ function SlotStep({
             onClick={() => onPick(o.id)}
           />
         ))}
+        <button className="option" onClick={() => setForm({})} style={{ borderStyle: 'dashed', justifyContent: 'center' }}>
+          <Icon name="plus" size={18} className="accent" />
+          <span style={{ fontWeight: 650 }}>Add your own {meta.label.toLowerCase()}</span>
+        </button>
       </div>
+      {mine.length > 0 && (
+        <div className="stack" style={{ gap: 2 }}>
+          <span className="caption">Your options</span>
+          {mine.map((c) => (
+            <div key={c.id} className="card-row" style={{ minHeight: 36 }}>
+              <span className="sub" style={{ color: 'var(--text)' }}>{c.name}</span>
+              <span className="row" style={{ gap: 4 }}>
+                <button className="link-btn" style={{ minHeight: 36 }} onClick={() => setForm({ existing: c })}>
+                  Edit
+                </button>
+                <button
+                  className="link-btn"
+                  style={{ minHeight: 36, color: 'var(--text-3)' }}
+                  onClick={async () => {
+                    if (confirm(`Delete "${c.name}"? Plans already locked keep their numbers.`)) await deleteCustomMeal(c.id)
+                  }}
+                >
+                  Delete
+                </button>
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+      <Sheet open={!!form} onClose={() => setForm(null)} title={form?.existing ? 'Edit option' : 'Add your own'}>
+        {form && (
+          <CustomMealForm
+            slot={slot}
+            existing={form.existing}
+            onSaved={(m) => {
+              setForm(null)
+              setCustomMeals([...optionsFor('breakfast'), ...optionsFor('lunch'), ...optionsFor('snack'), ...optionsFor('dinner'), ...optionsFor('evening')].filter((o) => o.custom && o.id !== m.id).concat(toMealOption(m)))
+              if (!form.existing && !selected.includes(m.id)) onPick(m.id)
+            }}
+          />
+        )}
+      </Sheet>
     </>
   )
 }
