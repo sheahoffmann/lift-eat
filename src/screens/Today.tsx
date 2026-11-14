@@ -22,6 +22,7 @@ import { MacroGoals } from '../components/MacroGoals'
 import { SoundtrackLibrary, SoundtrackPick } from "./Soundtrack"
 import { PetCard } from "./Pet"
 import { MealBuild } from "../components/MealBuild"
+import { Collapsible } from "../components/Collapsible"
 import { useGame } from '../lib/game'
 import { phaseOf, startWorkout, useActiveWorkout, useWorkoutsOn } from '../lib/workoutStore'
 import { openRun, openWorkout, showRecap, showWeekly } from '../lib/ui'
@@ -96,6 +97,15 @@ export function Today({ profile, go }: { profile: Profile; go: (t: TabKey) => vo
     // Fuel closes only when protein is hit AND calories are in range (never rewards undereating).
     fuel: fuelClosed ? 1 : Math.min(0.97, eaten.protein / profile.proteinTarget),
     log: (mealsLogged + (todayWeigh ? 1 : 0)) / ((plan ? meals.length : 4) + 1),
+  }
+
+  async function logUpNext() {
+    if (!upNext) return
+    await logPlanned(date, upNext)
+    const p = eaten.protein + upNext.macros.protein
+    const c = eaten.cal + upNext.macros.cal
+    if (!fuelClosed && p >= profile.proteinTarget - 5 && c >= lo && c <= hi) haptic.celebrate()
+    else haptic.success()
   }
 
   // Celebrate the moment all three rings close (once per day).
@@ -196,15 +206,36 @@ export function Today({ profile, go }: { profile: Profile; go: (t: TabKey) => vo
       </motion.section>
 
       <motion.div {...enter(2)}>
-        <MacroGoals eaten={eaten} targets={macroTargets(profile)} calorieRange={[lo, hi]} />
+        <Collapsible
+          id="goals"
+          label="Today's goals"
+          title="Today's goals"
+          summary={`${Math.round(eaten.cal).toLocaleString()} / ${profile.calorieTarget.toLocaleString()} cal · ${Math.round(eaten.protein)} / ${profile.proteinTarget} g protein`}
+        >
+          <MacroGoals eaten={eaten} targets={macroTargets(profile)} calorieRange={[lo, hi]} bare />
+        </Collapsible>
       </motion.div>
 
       {plan === undefined ? null : plan && upNext ? (
-        <motion.section {...enter(3)} className="card card--hero card--glow" aria-labelledby="next-meal">
-          <div className="stack gap-3">
-            <span className="chip chip--accent" style={{ alignSelf: 'flex-start' }}>
+        <motion.div {...enter(3)}>
+        <Collapsible
+          id="upnext"
+          label="Up next meal"
+          hero
+          glow
+          title={
+            <span className="accent">
               Up next · {upNext.slot === 'extra' ? 'Extra' : slotMeta[upNext.slot].label} · {upNext.time}
             </span>
+          }
+          summary={`${upNext.name} · ${upNext.macros.protein} g protein`}
+          action={
+            <button className="btn btn--primary btn--sm" onClick={logUpNext}>
+              Log it
+            </button>
+          }
+        >
+          <div className="stack gap-3">
             <h2 id="next-meal" className="title1">
               {upNext.name}
             </h2>
@@ -214,17 +245,7 @@ export function Today({ profile, go }: { profile: Profile; go: (t: TabKey) => vo
               <Stat label="Calories" value={String(upNext.macros.cal)} />
               <Stat label="Protein left"value={String(Math.max(0, Math.round(profile.proteinTarget - eaten.protein)))} unit="g" />
             </div>
-            <button
-              className="btn btn--primary btn--block"
-              style={{ marginTop: 'var(--s-2)' }}
-              onClick={async () => {
-                await logPlanned(date, upNext)
-                const p = eaten.protein + upNext.macros.protein
-                const c = eaten.cal + upNext.macros.cal
-                if (!fuelClosed && p >= profile.proteinTarget - 5 && c >= lo && c <= hi) haptic.celebrate()
-                else haptic.success()
-              }}
-            >
+            <button className="btn btn--primary btn--block" style={{ marginTop: 'var(--s-2)' }} onClick={logUpNext}>
               <Icon name="check" size={18} strokeWidth={2.6} /> Log it
             </button>
             <div className="row" style={{ justifyContent: 'center', gap: 'var(--s-4)' }}>
@@ -241,21 +262,24 @@ export function Today({ profile, go }: { profile: Profile; go: (t: TabKey) => vo
               </div>
             )}
           </div>
-        </motion.section>
+        </Collapsible>
+        </motion.div>
       ) : plan ? (
-        <motion.section {...enter(3)} className="card card--hero card--glow" aria-label="Meals done">
-          <div className="row">
-            <span className="icon-btn" style={{ background: 'var(--accent-fill)', color: '#fff' }} aria-hidden>
-              <Icon name="check" size={20} strokeWidth={3} />
-            </span>
-            <div className="stack">
-              <span className="title3">All meals logged</span>
-              <span className="caption num">
-                {Math.round(eaten.protein)} g protein · {Math.round(eaten.cal).toLocaleString()} cal today
+        <motion.div {...enter(3)}>
+          <Collapsible id="upnext" label="Meals" title="Meals" done summary={`✓ All meals logged · ${Math.round(eaten.protein)} g protein`}>
+            <div className="row">
+              <span className="icon-btn" style={{ background: 'var(--accent-fill)', color: '#fff' }} aria-hidden>
+                <Icon name="check" size={20} strokeWidth={3} />
               </span>
+              <div className="stack">
+                <span className="title3">All meals logged</span>
+                <span className="caption num">
+                  {Math.round(eaten.protein)} g protein · {Math.round(eaten.cal).toLocaleString()} cal today
+                </span>
+              </div>
             </div>
-          </div>
-        </motion.section>
+          </Collapsible>
+        </motion.div>
       ) : (
       <motion.section {...enter(3)} className="card card--hero card--glow" aria-labelledby="plan-title">
         <div className="stack gap-3">
@@ -296,10 +320,34 @@ export function Today({ profile, go }: { profile: Profile; go: (t: TabKey) => vo
         <Planner profile={profile} previous={latestPlan ?? null} onClose={() => setPlanning(false)} />
       </Sheet>
 
-      <motion.section {...enter(4)} className="card card--hero" aria-labelledby="workout-title">
+      <motion.div {...enter(4)}>
+      <Collapsible
+        id="session"
+        label="Today's session"
+        hero
+        done={!!doneSession || session.kind === 'rest'}
+        title={`Today's ${session.kind === 'lift' ? 'workout' : 'session'}`}
+        summary={
+          doneSession
+            ? `✓ ${session.name.replace(': Refresh', '')} done`
+            : session.kind === 'rest'
+              ? 'Rest day · recovery counts'
+              : `${session.name} · ${session.minutes[0]}–${session.minutes[1]} min`
+        }
+        action={
+          doneSession ? (
+            <button className="btn btn--secondary btn--sm" onClick={() => showRecap(doneSession)}>
+              Recap
+            </button>
+          ) : session.kind !== 'rest' ? (
+            <button className="btn btn--primary btn--sm" onClick={startToday}>
+              {active ? 'Continue' : 'Start'}
+            </button>
+          ) : undefined
+        }
+      >
         <div className="row" style={{ alignItems: 'stretch', gap: 'var(--s-3)' }}>
           <div className="stack gap-2" style={{ flex: 1, minWidth: 0 }}>
-            <span className="eyebrow">Today's {session.kind === 'lift' ? 'workout' : 'session'}</span>
             <h2 id="workout-title" className="title1">
               {session.name}
             </h2>
@@ -349,7 +397,8 @@ export function Today({ profile, go }: { profile: Profile; go: (t: TabKey) => vo
             Your Train ring is already closed. Recovery is part of the season.
           </p>
         )}
-      </motion.section>
+      </Collapsible>
+      </motion.div>
 
       <motion.div {...enter(5)}>
         <SoundtrackPick kind={session.kind} onMore={() => setListenOpen(true)} />

@@ -11,11 +11,12 @@ const rows = [
   { key: 'fat', label: 'Fat', unit: 'g', color: 'var(--text-2)' },
 ] as const
 
-export function MacroGoals({ eaten, targets, calorieRange }: { eaten: Macros; targets: MacroTargets; calorieRange?: [number, number] }) {
+export function MacroGoals({ eaten, targets, calorieRange, bare = false }: { eaten: Macros; targets: MacroTargets; calorieRange?: [number, number]; bare?: boolean }) {
+  const Wrap = bare ? "div" : "section"
   return (
-    <section className="card stack gap-3" aria-label="Today's macros">
+    <Wrap className={bare ? "stack gap-3" : "card stack gap-3"} aria-label="Today's macros">
       <div className="card-row">
-        <span className="title3">Today's goals</span>
+        {!bare && <span className="title3">Today's goals</span>}
         {calorieRange && (
           <span className="caption num">
             Range {calorieRange[0].toLocaleString()}–{calorieRange[1].toLocaleString()} cal
@@ -57,6 +58,6 @@ export function MacroGoals({ eaten, targets, calorieRange }: { eaten: Macros; ta
           </div>
         )
       })}
-    </section>
+    </Wrap>
   )
 }

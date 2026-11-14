@@ -10,6 +10,7 @@ import { haptic } from '../lib/haptics'
 import { PixelDino } from '../components/PixelDino'
 import { Sheet } from '../components/Sheet'
 import { Icon } from '../components/Icon'
+import { Collapsible } from '../components/Collapsible'
 
 function usePetProgress(profile: Profile): PetProgress | null {
   const pets = usePets()
@@ -64,10 +65,16 @@ export function PetCard({ profile }: { profile: Profile }) {
 
   return (
     <>
+      <Collapsible
+        id="pet"
+        label="Your dinosaur"
+        title="Your dino"
+        summary={`${isEgg ? `${rarity.label} egg` : p.species.name} · ${p.stage} · ${p.progress}/${p.target} days${p.todayFed ? " · fed ✓" : ""}`}
+        action={<PixelDino species={p.species} stage={p.stage} size={44} mood={p.todayFed ? "happy" : "hungry"} />}
+      >
       <motion.button
-        className="card"
         onClick={() => setOpen(true)}
-        style={{ width: '100%', textAlign: 'left', padding: 'var(--s-4)', outline: p.captureReady ? `2px solid ${rarity.color}` : undefined, outlineOffset: -2 }}
+        style={{ width: "100%", textAlign: "left", padding: 0, borderRadius: "var(--r-md)", outline: p.captureReady ? `2px solid ${rarity.color}` : undefined, outlineOffset: 4 }}
         aria-label={`Your dinosaur: ${isEgg ? `${rarity.label} egg` : `${p.species.name}, ${p.stage}`}. ${p.progress} of ${p.target} days. ${statusLine(p)}`}
       >
         <div className="row" style={{ gap: 'var(--s-3)', alignItems: 'center' }}>
@@ -97,6 +104,7 @@ export function PetCard({ profile }: { profile: Profile }) {
           </div>
         </div>
       </motion.button>
+      </Collapsible>
       {p.captureReady && (
         <button className="btn btn--primary btn--block" onClick={capture} disabled={busy} style={{ marginTop: 'calc(var(--s-5) * -0.5)' }}>
           <Icon name="sparkle" size={18} /> Capture {p.species.name}

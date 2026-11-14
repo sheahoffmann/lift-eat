@@ -6,6 +6,7 @@ import type { SessionKind } from '../data/programs'
 import { todayISO } from '../lib/profile'
 import { haptic } from '../lib/haptics'
 import { Icon } from '../components/Icon'
+import { Collapsible } from '../components/Collapsible'
 
 const kindLabel: Record<ListenKind, string> = { playlist: 'Playlist', podcast: 'Podcast', audiobook: 'Audiobook' }
 
@@ -31,11 +32,18 @@ export function SoundtrackPick({ kind, onMore }: { kind: SessionKind; onMore: ()
   const [seed, setSeed] = useState(0)
   const item = pickFor(kind, todayISO(), seed)
   return (
-    <section className="card stack gap-3" aria-label="Today's soundtrack">
-      <div className="card-row">
-        <span className="eyebrow row" style={{ gap: 6 }}>
+    <Collapsible
+      id="soundtrack"
+      label="Today's soundtrack"
+      title={
+        <>
           <Icon name="headphones" size={15} className="accent" /> Today's soundtrack
-        </span>
+        </>
+      }
+      summary={`${kindLabel[item.kind]} · ${item.title}`}
+    >
+    <div className="stack gap-3">
+      <div className="card-row" style={{ justifyContent: "flex-end" }}>
         <button
           className="link-btn"
           style={{ minHeight: 32, padding: 0 }}
@@ -66,7 +74,8 @@ export function SoundtrackPick({ kind, onMore }: { kind: SessionKind; onMore: ()
           More picks
         </button>
       </div>
-    </section>
+    </div>
+    </Collapsible>
   )
 }
 
