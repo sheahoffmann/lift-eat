@@ -12,7 +12,7 @@ import { Sheet } from '../components/Sheet'
 import { Icon } from '../components/Icon'
 import { Collapsible } from '../components/Collapsible'
 
-function usePetProgress(profile: Profile): PetProgress | null {
+export function usePetProgress(profile: Profile): PetProgress | null {
   const pets = usePets()
   const data = useGameData()
   useEffect(() => {
@@ -23,7 +23,7 @@ function usePetProgress(profile: Profile): PetProgress | null {
   return computeProgress(active, data, profile)
 }
 
-function statusLine(p: PetProgress) {
+export function statusLine(p: PetProgress) {
   if (p.pet.hatchedAt > new Date().toISOString().slice(0, 10)) return 'A new egg arrives tomorrow.'
   if (p.captureReady) return 'Fully grown. Capture it to keep it forever!'
   if (p.todayFed) return p.stage === 'Egg' ? 'Warming up…' : 'Fed today. Nice work.'
@@ -117,7 +117,7 @@ export function PetCard({ profile }: { profile: Profile }) {
   )
 }
 
-function PetDetail({ p }: { p: PetProgress }) {
+export function PetDetail({ p }: { p: PetProgress }) {
   const pets = usePets() ?? []
   const captured = new Set(pets.filter((x) => x.status === 'captured').map((x) => x.species))
   const rarity = rarityInfo[p.species.rarity]
@@ -184,4 +184,25 @@ function PetDetail({ p }: { p: PetProgress }) {
       </section>
     </div>
   )
+}
+
+/** Hatch reveal toast, once per pet. */
+export function useHatchReveal(p: PetProgress | null) {
+  useEffect(() => {
+    if (!p || p.stage === 'Egg' || p.stage === 'Captured') return
+    const key = `lift-eat:hatched:${p.pet.id}`
+    try {
+      if (localStorage.getItem(key)) return
+      localStorage.setItem(key, '1')
+    } catch {
+      return
+    }
+    celebrate({ kind: 'toast', title: `Your egg hatched: it's a ${rarityInfo[p.species.rarity].label} ${p.species.name}!` })
+  }, [p?.pet.id, p?.stage]) // eslint-disable-line react-hooks/exhaustive-deps
+}
+
+export async function capture(p: PetProgress) {
+  await capturePet(p.pet)
+  haptic.celebrate()
+  celebrate({ kind: 'achievement', title: `${p.species.name} captured!`, desc: `${p.species.blurb} It's in your collection forever.`, rarity: p.species.rarity })
 }

@@ -7,7 +7,7 @@ import { haptic } from '../../lib/haptics'
 import { Icon } from '../../components/Icon'
 import { Sheet } from '../../components/Sheet'
 
-async function toggle(date: string, s: Supplement, on: boolean) {
+export async function toggleSupplement(date: string, s: Supplement, on: boolean) {
   const id = `${date}:${s.id}`
   const foodId = `supp:${id}`
   if (on) {
@@ -48,7 +48,7 @@ export function SupplementsCard({ profile, date }: { profile: Profile; date: str
               aria-checked={on}
               onClick={async () => {
                 haptic.success()
-                await toggle(date, s, on)
+                await toggleSupplement(date, s, on)
               }}
             >
               <span className={`check-dot ${on ? 'check-dot--on' : ''}`} aria-hidden>
