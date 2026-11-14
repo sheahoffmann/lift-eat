@@ -2,7 +2,7 @@
 import type { WeekPlan } from '../../lib/db'
 import { sectionOrder } from '../../data/groceryItems'
 import { buildGroceryList, listAsText, needText, packText, type GroceryLine } from '../../lib/grocery'
-import { addDays, toggleChecked } from '../../lib/eatStore'
+import { addDays, markShopped, toggleChecked } from '../../lib/eatStore'
 import { haptic } from '../../lib/haptics'
 import { Icon } from '../../components/Icon'
 
@@ -16,26 +16,37 @@ export function groceryProgress(plan: WeekPlan) {
   return { done, total: all.length, left: all.length - done }
 }
 
-/** Always-there entry point back into the list, so you can leave it and come back at the store. */
+/** Grocery card on Eat. Leave the list and come back any time; tap Complete when you've shopped to hide it. */
 export function GroceryCard({ plan, onOpen }: { plan: WeekPlan; onOpen: () => void }) {
   const { done, total, left } = groceryProgress(plan)
-  const complete = left === 0
+  const all = left === 0
   return (
-    <button className="card card-row" onClick={onOpen} style={{ width: '100%', textAlign: 'left', padding: 'var(--s-3) var(--s-4)', gap: 'var(--s-3)' }} aria-label={`Grocery list: ${done} of ${total} checked`}>
-      <span className="icon-btn" style={{ width: 40, height: 40, flex: 'none', background: complete ? 'var(--accent-fill)' : 'var(--accent-soft)', color: complete ? '#fff' : 'var(--accent)' }} aria-hidden>
-        <Icon name={complete ? 'check' : 'cart'} size={20} strokeWidth={complete ? 3 : undefined} />
-      </span>
-      <div className="stack" style={{ flex: 1, minWidth: 0, gap: 4 }}>
-        <span style={{ fontWeight: 650 }}>Grocery list</span>
-        <span className="caption num">{complete ? 'All shopped' : done === 0 ? `${total} items` : `${left} left · ${done} of ${total} in the cart`}</span>
-        {!complete && done > 0 && (
-          <div className="bar" style={{ height: 4 }}>
-            <div className="bar__fill" style={{ transform: `scaleX(${done / total})` }} />
-          </div>
-        )}
-      </div>
-      <Icon name="chevron" size={18} className="muted" />
-    </button>
+    <section className="card card-row" style={{ padding: 'var(--s-3) var(--s-4)', gap: 'var(--s-3)' }} aria-label="Grocery list">
+      <button className="row" onClick={onOpen} style={{ flex: 1, minWidth: 0, gap: 'var(--s-3)', textAlign: 'left' }} aria-label={`Open grocery list: ${done} of ${total} checked`}>
+        <span className="icon-btn" style={{ width: 40, height: 40, flex: 'none', background: 'var(--accent-soft)', color: 'var(--accent)' }} aria-hidden>
+          <Icon name="cart" size={20} />
+        </span>
+        <div className="stack" style={{ flex: 1, minWidth: 0, gap: 4 }}>
+          <span style={{ fontWeight: 650 }}>Grocery list</span>
+          <span className="caption num">{all ? 'Everything checked' : done === 0 ? `${total} items · tap to open` : `${left} left · ${done} of ${total} in the cart`}</span>
+          {done > 0 && (
+            <div className="bar" style={{ height: 4 }}>
+              <div className="bar__fill" style={{ transform: `scaleX(${done / total})` }} />
+            </div>
+          )}
+        </div>
+      </button>
+      <button
+        className={`btn btn--sm ${all ? 'btn--primary' : 'btn--secondary'}`}
+        style={{ minHeight: 36, padding: '0 14px', flex: 'none' }}
+        onClick={() => {
+          haptic.success()
+          markShopped(plan, true)
+        }}
+      >
+        Complete
+      </button>
+    </section>
   )
 }
 

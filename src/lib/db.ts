@@ -22,6 +22,7 @@ export type WeekPlan = {
   proteinTarget: number
   pantryHave: string[] // grocery item ids skipped because they're already in the kitchen
   checked: string[] // grocery lines checked off in the store
+  shoppedAt?: string // set when you tap Complete; hides the grocery card on Eat
   lockedAt: string
 }
 

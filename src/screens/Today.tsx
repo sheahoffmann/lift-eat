@@ -24,7 +24,6 @@ import { MealBuild } from '../components/MealBuild'
 import { PixelDino } from '../components/PixelDino'
 import { capture, PetDetail, statusLine, useHatchReveal, usePetProgress } from './Pet'
 import { AteSomethingElse } from './eat/AteSomethingElse'
-import { GroceryCard, GroceryListView, groceryProgress } from './eat/GroceryList'
 import { toggleSupplement } from './eat/Supplements'
 import { rarityInfo } from '../data/dinos'
 import { db } from '../lib/db'
@@ -40,7 +39,7 @@ const enter = (i: number) => ({
   transition: { type: 'spring' as const, stiffness: 140, damping: 20, delay: 0.04 * i },
 })
 
-type SheetKind = null | 'groceries' | 'player' | 'pet' | 'goals' | 'rings' | 'weigh' | 'countdown' | 'plan' | { meal: PlannedMeal } | { other: PlannedMeal } | 'session'
+type SheetKind = null | 'player' | 'pet' | 'goals' | 'rings' | 'weigh' | 'countdown' | 'plan' | { meal: PlannedMeal } | { other: PlannedMeal } | 'session'
 
 export function Today({ profile, go }: { profile: Profile; go: (t: TabKey) => void }) {
   const program = programs[profile.program]
@@ -110,8 +109,6 @@ export function Today({ profile, go }: { profile: Profile; go: (t: TabKey) => vo
   const backAtIt = !!lastWorkout && daysBetween(lastWorkout.date) >= 4 && !trained
   const isMonday = now.getDay() === 1
   const shoppingDay = plan && now.getDay() === settings.shoppingDay && plan.endDate <= addDays(date, 1)
-  // Keep the grocery list one tap away until it's shopped (first days of a new plan).
-  const showGroceries = !!plan && date <= addDays(plan.startDate, 2) && groceryProgress(plan).left > 0
 
   // Celebrate the moment all three rings close (once per day).
   const allClosed = rings.train >= 1 && rings.fuel >= 1 && rings.log >= 1
@@ -191,37 +188,40 @@ export function Today({ profile, go }: { profile: Profile; go: (t: TabKey) => vo
 
       {/* 1. Status at a glance: rings · player · dino · fuel */}
       <motion.section {...enter(1)} className="card stack gap-4" aria-label="Today's status" style={{ padding: 'var(--s-4)' }}>
-        <div className="row" style={{ gap: 'var(--s-3)', alignItems: 'center' }}>
-          <button onClick={() => setSheet('rings')} aria-label={`Daily rings: Train ${ringPct(rings.train)}, Fuel ${ringPct(rings.fuel)}, Log ${ringPct(rings.log)}`} style={{ flex: 'none' }}>
-            <Rings values={rings} size={92} />
+        <div className="row" style={{ gap: 'var(--s-2)', alignItems: 'center' }}>
+          <button className="status-col" onClick={() => setSheet('rings')} aria-label={`Daily rings: Train ${ringPct(rings.train)}, Fuel ${ringPct(rings.fuel)}, Log ${ringPct(rings.log)}`}>
+            <Rings values={rings} size={76} />
           </button>
-          <button className="stack" onClick={() => setSheet('player')} style={{ flex: 1, minWidth: 0, textAlign: 'left', gap: 6 }} aria-label={`Player card: ${stats.ovr} overall, level ${stats.level}`}>
-            <div className="row" style={{ gap: 8 }}>
-              <span className={`player__badge player__badge--${stats.tier}`} style={{ width: 40, height: 48, borderRadius: 10 }} aria-hidden>
-                <span className="player__ovr num" style={{ fontSize: '1.15rem' }}>
+          <button className="status-col" onClick={() => setSheet('player')} aria-label={`Player card: ${stats.ovr} overall, level ${stats.level}`}>
+            <div className="row" style={{ gap: 8, alignItems: 'center' }}>
+              <span className={`player__badge player__badge--${stats.tier}`} style={{ width: 36, height: 44, borderRadius: 9, flex: 'none' }} aria-hidden>
+                <span className="player__ovr num" style={{ fontSize: '1.05rem' }}>
                   {stats.ovr}
                 </span>
-                <span className="player__pos" style={{ fontSize: '0.45rem' }}>
+                <span className="player__pos" style={{ fontSize: '0.42rem' }}>
                   OVR
                 </span>
               </span>
-              <div className="stack" style={{ minWidth: 0 }}>
-                <span style={{ fontWeight: 650, fontSize: 'var(--fs-sub)' }}>Level {stats.level}</span>
-                <span className="caption">{stats.levelTitle}</span>
+              {/* Bar is only as wide as the level text */}
+              <div className="stack" style={{ gap: 3, textAlign: 'left' }}>
+                <span style={{ fontWeight: 650, fontSize: 'var(--fs-sub)', whiteSpace: 'nowrap' }}>Level {stats.level}</span>
+                <span className="caption" style={{ whiteSpace: 'nowrap', fontSize: '0.7rem' }}>{stats.levelTitle}</span>
+                <div className="bar" style={{ height: 3, width: '100%' }}>
+                  <motion.div className="bar__fill" animate={{ scaleX: Math.max(0.04, stats.xp / stats.xpToNext) }} />
+                </div>
               </div>
             </div>
-            <div className="bar" style={{ height: 4 }}>
-              <motion.div className="bar__fill" animate={{ scaleX: Math.max(0.02, stats.xp / stats.xpToNext) }} />
-            </div>
           </button>
-          {pet && (
-            <button className="stack" onClick={() => setSheet('pet')} style={{ flex: 'none', alignItems: 'center', gap: 0 }} aria-label={`Your dinosaur: ${pet.stage === 'Egg' ? `${rarityInfo[pet.species.rarity].label} egg` : pet.species.name}. ${statusLine(pet)}`}>
-              <PixelDino species={pet.species} stage={pet.stage} size={64} mood={pet.todayFed ? 'happy' : 'hungry'} />
+          {pet ? (
+            <button className="status-col" onClick={() => setSheet('pet')} aria-label={`Your dinosaur: ${pet.stage === 'Egg' ? `${rarityInfo[pet.species.rarity].label} egg` : pet.species.name}. ${statusLine(pet)}`}>
+              <PixelDino species={pet.species} stage={pet.stage} size={60} mood={pet.todayFed ? 'happy' : 'hungry'} />
               <span className="caption num" style={{ fontSize: '0.65rem', marginTop: -4 }}>
                 {pet.progress}/{pet.target}
                 {pet.todayFed ? ' · fed' : ''}
               </span>
             </button>
+          ) : (
+            <span className="status-col" aria-hidden />
           )}
         </div>
         <button className="stack" onClick={() => setSheet('goals')} style={{ gap: 8, textAlign: 'left' }} aria-label="Today's macro goals">
@@ -272,12 +272,6 @@ export function Today({ profile, go }: { profile: Profile; go: (t: TabKey) => vo
           </div>
           <Icon name="cart" size={20} className="accent" />
         </motion.button>
-      )}
-
-      {showGroceries && plan && (
-        <motion.div {...enter(2)}>
-          <GroceryCard plan={plan} onOpen={() => setSheet('groceries')} />
-        </motion.div>
       )}
 
       {/* 2. The one thing to do now */}
@@ -354,9 +348,6 @@ export function Today({ profile, go }: { profile: Profile; go: (t: TabKey) => vo
       </motion.section>
 
       {/* Detail sheets */}
-      <Sheet open={sheet === 'groceries'} onClose={() => setSheet(null)} title="Grocery list">
-        {plan && <GroceryListView plan={plan} />}
-      </Sheet>
       <Sheet open={sheet === 'player'} onClose={() => setSheet(null)} title="Player card">
         <PlayerCard stats={stats} />
       </Sheet>

@@ -60,6 +60,11 @@ export async function toggleChecked(plan: WeekPlan, key: string) {
   })
 }
 
+/** Hide (or bring back) the grocery card on Eat. */
+export async function markShopped(plan: WeekPlan, shopped: boolean) {
+  await db.plans.update(plan.id, { shoppedAt: shopped ? new Date().toISOString() : undefined })
+}
+
 export function useDayLog(date: string) {
   return useLiveQuery(() => db.foodLog.where('date').equals(date).sortBy('createdAt'), [date], undefined)
 }

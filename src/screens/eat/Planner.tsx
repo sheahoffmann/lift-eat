@@ -173,7 +173,7 @@ export function Planner({ profile, previous, onClose }: { profile: Profile; prev
                   </span>
                   <h2 className="title1">Week locked in</h2>
                   <p className="sub">Here's your grocery list. Every meal this week is one tap to log.</p>
-                  <p className="caption">Not at the store yet? Tap Done. The list stays on the Eat tab (and on Today until you've shopped), with your checkmarks saved.</p>
+                  <p className="caption">Not at the store yet? Tap Done. The list waits on the Eat tab with your checkmarks saved. Tap Complete there once you've shopped.</p>
                 </motion.div>
                 <GroceryListView plan={locked} />
                 <button className="btn btn--invert btn--block" onClick={onClose}>

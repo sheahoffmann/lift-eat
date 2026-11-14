@@ -81,7 +81,7 @@ export function Eat({ profile }: { profile: Profile }) {
         </section>
       ) : (
         <>
-          <GroceryCard plan={plan} onOpen={() => setGroceries(true)} />
+          {!plan.shoppedAt && <GroceryCard plan={plan} onOpen={() => setGroceries(true)} />}
           <ol className="stack gap-3" style={{ listStyle: 'none', margin: 0, padding: 0 }}>
             {meals.map((m) => (
               <MealRow
