@@ -7,7 +7,7 @@ import { db } from '../lib/db'
 import { programs } from '../data/programs'
 import { exercises } from '../data/exercises'
 import { muscleNames, type MuscleSlug } from '../anatomy/muscles'
-import { AnatomyFigure } from '../anatomy/AnatomyFigure'
+import { AnatomyFigure, heatColor } from '../anatomy/AnatomyFigure'
 import { Icon } from '../components/Icon'
 import { Sheet } from '../components/Sheet'
 import { LineChart } from '../components/LineChart'
@@ -17,7 +17,7 @@ import { logWaist, movingAverage, useWeighIns } from '../lib/weighins'
 import { addDaysISO, bestE1RM, useGame, weekStart } from '../lib/game'
 import { computeCheckIn } from '../lib/checkin'
 import { phaseOf } from '../lib/workoutStore'
-import { e1rm, effectiveLoad, intensities, setsPerMuscle } from '../lib/training'
+import { e1rm, effectiveLoad, setsPerMuscle } from '../lib/training'
 import { showWeekly } from '../lib/ui'
 import { renderCardImage, shareBlob } from '../lib/shareImage'
 import { Settings } from './progress/Settings'
@@ -297,8 +297,15 @@ export function Progress({ profile }: { profile: Profile }) {
           <span className="caption">sets</span>
         </div>
         <div className="row" style={{ justifyContent: 'center', gap: 'var(--s-6)' }}>
-          <AnatomyFigure body={profile.body} side="front" muscles={balance ? intensities(balance.per) : {}} height={190} />
-          <AnatomyFigure body={profile.body} side="back" muscles={balance ? intensities(balance.per) : {}} height={190} />
+          <AnatomyFigure body={profile.body} side="front" muscles={balance ? weeklyHeat(balance.per) : {}} height={190} heat pulse={false} />
+          <AnatomyFigure body={profile.body} side="back" muscles={balance ? weeklyHeat(balance.per) : {}} height={190} heat pulse={false} />
+        </div>
+        <div className="stack" style={{ gap: 4 }} aria-label="Heatmap legend: light orange means a little work, dark orange means 12 or more sets this week">
+          <div style={{ height: 8, borderRadius: 4, background: `linear-gradient(90deg, ${heatColor(0)}, ${heatColor(0.5)}, ${heatColor(1)})` }} />
+          <div className="card-row caption">
+            <span>A little work</span>
+            <span>Worked hard (12+ sets)</span>
+          </div>
         </div>
         {balance && balance.ranked.length ? (
           <div className="stack gap-2">
@@ -306,7 +313,7 @@ export function Progress({ profile }: { profile: Profile }) {
               <div key={m} className="hbar">
                 <span>{muscleNames[m]}</span>
                 <div className="hbar__track">
-                  <motion.div className="hbar__fill" initial={{ scaleX: 0 }} animate={{ scaleX: v / balance.ranked[0][1] }} />
+                  <motion.div className="hbar__fill" style={{ background: heatColor(Math.min(1, v / 12)) }} initial={{ scaleX: 0 }} animate={{ scaleX: Math.min(1, v / 12) }} />
                 </div>
                 <span className="num caption" style={{ textAlign: 'right' }}>
                   {Number.isInteger(v) ? v : v.toFixed(1)}
@@ -411,4 +418,11 @@ function AchievementCard({ a }: { a: ReturnType<typeof useGame> extends infer G 
       {!a.unlocked && <span className="ach__rarity" style={{ opacity: 0.8 }}>{a.desc}</span>}
     </div>
   )
+}
+
+/** Weekly heat: 0 sets → none, 12+ sets → darkest. A little work still shows light orange. */
+function weeklyHeat(perMuscle: Partial<Record<MuscleSlug, number>>) {
+  const out: Partial<Record<MuscleSlug, number>> = {}
+  for (const [m, sets] of Object.entries(perMuscle) as [MuscleSlug, number][]) if (sets > 0) out[m] = Math.min(1, sets / 12)
+  return out
 }
