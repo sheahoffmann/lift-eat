@@ -32,14 +32,14 @@ const attrMeta = [
   { key: 'discipline', short: 'DIS', name: 'Discipline' },
 ] as const
 
-export function PlayerCard({ stats }: { stats: PlayerStats }) {
+export function PlayerCard({ stats, bare = false }: { stats: PlayerStats; bare?: boolean }) {
   const [open, setOpen] = useState(false)
   const pct = Math.min(1, stats.xp / stats.xpToNext)
 
   return (
     <motion.button
       layout
-      className="card player"
+      className={bare ? "player" : "card player"}
       onClick={() => {
         haptic.light()
         setOpen((o) => !o)
@@ -47,7 +47,7 @@ export function PlayerCard({ stats }: { stats: PlayerStats }) {
       aria-expanded={open}
       aria-label={`Player card: ${stats.ovr} overall, ${tierLabel[stats.tier]} tier, level ${stats.level} ${stats.levelTitle}. ${open ? 'Collapse' : 'Expand'} attributes.`}
       transition={{ type: 'spring', stiffness: 380, damping: 34 }}
-      style={{ textAlign: 'left', width: '100%', padding: 'var(--s-4)' }}
+      style={{ textAlign: "left", width: "100%", padding: bare ? 0 : "var(--s-4)" }}
     >
       <motion.div layout="position" className="row" style={{ gap: 'var(--s-4)' }}>
         <div className={`player__badge player__badge--${stats.tier}`} aria-hidden>

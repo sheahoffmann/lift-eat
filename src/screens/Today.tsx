@@ -170,14 +170,28 @@ export function Today({ profile, go }: { profile: Profile; go: (t: TabKey) => vo
       )}
 
       <motion.div {...enter(1)}>
-        <PlayerCard stats={stats} />
+        <Collapsible
+          id="player"
+          label="Player card"
+          title="Player card"
+          summary={`${stats.ovr} OVR · Level ${stats.level} ${stats.levelTitle} · ${stats.xp}/${stats.xpToNext} XP`}
+        >
+          <PlayerCard stats={stats} bare />
+        </Collapsible>
       </motion.div>
 
       <motion.div {...enter(1)}>
         <PetCard profile={profile} />
       </motion.div>
 
-      <motion.section {...enter(2)} className="card" aria-label="Daily rings">
+      <motion.div {...enter(2)}>
+      <Collapsible
+        id="rings"
+        label="Daily rings"
+        title="Daily rings"
+        summary={`Train ${rings.train >= 1 ? '✓' : `${Math.round(rings.train * 100)}%`} · Fuel ${rings.fuel >= 1 ? '✓' : `${Math.round(rings.fuel * 100)}%`} · Log ${rings.log >= 1 ? '✓' : `${Math.round(rings.log * 100)}%`}`}
+        action={<Rings values={rings} size={40} />}
+      >
         <div className="row" style={{ gap: 'var(--s-5)' }}>
           <Rings values={rings} />
           <RingLegend
@@ -203,7 +217,8 @@ export function Today({ profile, go }: { profile: Profile; go: (t: TabKey) => vo
             }}
           />
         </div>
-      </motion.section>
+      </Collapsible>
+      </motion.div>
 
       <motion.div {...enter(2)}>
         <Collapsible
@@ -281,11 +296,17 @@ export function Today({ profile, go }: { profile: Profile; go: (t: TabKey) => vo
           </Collapsible>
         </motion.div>
       ) : (
-      <motion.section {...enter(3)} className="card card--hero card--glow" aria-labelledby="plan-title">
+      <motion.div {...enter(3)}>
+      <Collapsible
+        id="plan"
+        label="Plan your week"
+        hero
+        glow
+        title={<><Icon name="cart" size={14} /> Eat</>}
+        summary="Plan your week: pick meals, get a grocery list"
+        action={<button className="btn btn--primary btn--sm" onClick={() => setPlanning(true)}>Plan</button>}
+      >
         <div className="stack gap-3">
-          <span className="chip" style={{ alignSelf: 'flex-start' }}>
-            <Icon name="cart" size={14} /> Eat
-          </span>
           <h2 id="plan-title" className="title1">
             Plan your week
           </h2>
@@ -301,7 +322,8 @@ export function Today({ profile, go }: { profile: Profile; go: (t: TabKey) => vo
             Plan my week
           </button>
         </div>
-      </motion.section>
+      </Collapsible>
+      </motion.div>
       )}
 
       {plan && now.getDay() === settings.shoppingDay && plan.endDate <= addDays(date, 1) && (
@@ -408,15 +430,31 @@ export function Today({ profile, go }: { profile: Profile; go: (t: TabKey) => vo
       </Sheet>
 
       <motion.div {...enter(5)}>
-        <WeighInCard logged={todayWeigh?.lb} last={weighIns.at(-1)?.lb} />
+        <Collapsible
+          id="weighin"
+          label="Morning weigh-in"
+          title="Morning weigh-in"
+          done={!!todayWeigh}
+          summary={todayWeigh ? `✓ ${todayWeigh.lb.toFixed(1)} lb logged` : 'Not logged yet today'}
+        >
+          <WeighInCard logged={todayWeigh?.lb} last={weighIns.at(-1)?.lb} bare />
+        </Collapsible>
       </motion.div>
 
       <motion.div {...enter(6)}>
-        <GoalCard profile={profile} />
+        <Collapsible
+          id="countdown"
+          label="Countdown"
+          title="Countdown"
+          summary={profile.goal ? `${profile.goal.label} · ${Math.max(0, daysUntil(profile.goal.date))} days to go` : 'Add a trip or event to count down to'}
+        >
+          <GoalCard profile={profile} bare />
+        </Collapsible>
       </motion.div>
 
       {season.progress !== null && (
-        <motion.section {...enter(7)} className="card" aria-label="Preseason progress">
+        <motion.div {...enter(7)}>
+        <Collapsible id="season" label="Season progress" title={season.name} summary={`Day ${season.dayOfSeason} of ${season.lengthDays}`}>
           <div className="card-row">
             <span className="title3">{season.name}</span>
             <span className="caption num">
@@ -436,7 +474,8 @@ export function Today({ profile, go }: { profile: Profile; go: (t: TabKey) => vo
               ? 'Week 1 is a refresh. Weeks 2–3 ramp up, then Season 1: Cut.'
               : 'Ramping up. Season 1: Cut starts after week 3.'}
           </p>
-        </motion.section>
+        </Collapsible>
+        </motion.div>
       )}
     </main>
   )
@@ -457,7 +496,7 @@ function Stat({ label, value, unit, icon }: { label: string; value: string; unit
   )
 }
 
-function GoalCard({ profile }: { profile: Profile }) {
+function GoalCard({ profile, bare = false }: { profile: Profile; bare?: boolean }) {
   const [label, setLabel] = useState('')
   const [date, setDate] = useState('')
   const goal = profile.goal
@@ -468,7 +507,7 @@ function GoalCard({ profile }: { profile: Profile }) {
     const pct = Math.min(1, Math.max(0, 1 - left / total))
     const weeks = Math.floor(left / 7)
     return (
-      <section className="card card--glow" aria-label={`${left} days until ${goal.label}`}>
+      <section className={bare ? "" : "card card--glow"} aria-label={`${left} days until ${goal.label}`}>
         <div className="card-row" style={{ alignItems: 'flex-end' }}>
           <div className="stack gap-1">
             <span className="eyebrow">Countdown</span>
@@ -498,7 +537,7 @@ function GoalCard({ profile }: { profile: Profile }) {
 
   const valid = label.trim() !== '' && /^\d{4}-\d{2}-\d{2}$/.test(date) && daysUntil(date) > 0
   return (
-    <section className="card" aria-labelledby="goal-title">
+    <section className={bare ? "" : "card"} aria-labelledby="goal-title">
       <h2 id="goal-title" className="title3">
         Training for something?
       </h2>
@@ -547,13 +586,13 @@ function GoalCard({ profile }: { profile: Profile }) {
   )
 }
 
-function WeighInCard({ logged, last }: { logged?: number; last?: number }) {
+function WeighInCard({ logged, last, bare = false }: { logged?: number; last?: number; bare?: boolean }) {
   const [value, setValue] = useState('')
   const [editing, setEditing] = useState(false)
 
   if (logged && !editing) {
     return (
-      <section className="card" aria-label="Morning weigh-in">
+      <section className={bare ? "" : "card"} aria-label="Morning weigh-in">
         <div className="card-row">
           <div className="row">
             <span className="icon-btn" style={{ background: 'var(--accent-soft)', color: 'var(--accent)' }} aria-hidden>
@@ -576,13 +615,17 @@ function WeighInCard({ logged, last }: { logged?: number; last?: number }) {
   const valid = value !== '' && n > 60 && n < 500
 
   return (
-    <section className="card" aria-labelledby="weigh-title">
-      <div className="row" style={{ marginBottom: 'var(--s-3)' }}>
-        <Icon name="scale" size={20} className="accent" />
-        <h2 id="weigh-title" className="title3">
-          Morning weigh-in
-        </h2>
-      </div>
+    <section className={bare ? "" : "card"} aria-labelledby="weigh-title">
+      {bare ? (
+        <h2 id="weigh-title" className="sr-only">Morning weigh-in</h2>
+      ) : (
+        <div className="row" style={{ marginBottom: "var(--s-3)" }}>
+          <Icon name="scale" size={20} className="accent" />
+          <h2 id="weigh-title" className="title3">
+            Morning weigh-in
+          </h2>
+        </div>
+      )}
       <form
         className="row"
         onSubmit={(e) => {
