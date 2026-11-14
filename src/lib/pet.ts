@@ -8,7 +8,7 @@ import { calorieRange } from './nutrition'
 import { todayISO, type Profile } from './profile'
 import type { GameData } from './game'
 
-export type DayStatus = { date: string; train: boolean; fuel: boolean; log: boolean; fed: boolean; missed: boolean }
+export type DayStatus = { date: string; train: boolean; fuel: boolean; log: boolean; fed: boolean; missed: boolean; foodCount: number; weighed: boolean }
 
 const addDays = (iso: string, n: number) => {
   const d = new Date(iso + 'T12:00:00')
@@ -30,7 +30,7 @@ export function dayStatus(data: GameData, profile: Profile, date: string): DaySt
   const weighed = data.weighIns.some((w) => w.date === date && w.lb > 0)
   const log = food.length >= 3 || (weighed && food.length >= 1)
   const fed = train && (fuel || log)
-  return { date, train, fuel, log, fed, missed: !fed }
+  return { date, train, fuel, log, fed, missed: !fed, foodCount: food.length, weighed }
 }
 
 export const STAGES = ['Egg', 'Hatchling', 'Baby', 'Juvenile', 'Adult'] as const

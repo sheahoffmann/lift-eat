@@ -28,7 +28,7 @@ function statusLine(p: PetProgress) {
   if (p.todayFed) return p.stage === 'Egg' ? 'Warming up…' : 'Fed today. Nice work.'
   if (p.trend === 'shrinking') return 'It shrank a little. One good day grows it back.'
   if (!p.today.train) return 'Hungry: train today and log your food to feed it.'
-  return 'Hungry: log your food (hit protein or log 3 meals) to feed it.'
+  return 'Hungry: log your food to feed it.'
 }
 
 export function PetCard({ profile }: { profile: Profile }) {
@@ -86,6 +86,14 @@ export function PetCard({ profile }: { profile: Profile }) {
             <span className="caption" style={{ color: p.todayFed ? 'var(--accent)' : 'var(--text-2)' }}>
               {statusLine(p)}
             </span>
+            {!p.captureReady && p.stage !== 'Captured' && (
+              <div className="row" style={{ gap: 6, flexWrap: 'wrap' }} aria-label="Today's feeding checklist">
+                <span className={`pill-sm ${p.today.train ? 'pill-sm--accent' : ''}`}>{p.today.train ? '✓' : '○'} Train</span>
+                <span className={`pill-sm ${p.today.fuel || p.today.log ? 'pill-sm--accent' : ''}`}>
+                  {p.today.fuel || p.today.log ? '✓ Food' : `○ Food · ${p.today.foodCount}/3 logged${p.today.weighed ? '' : ' or weigh-in + 1'}`}
+                </span>
+              </div>
+            )}
           </div>
         </div>
       </motion.button>

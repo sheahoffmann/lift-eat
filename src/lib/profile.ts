@@ -22,6 +22,8 @@ export type Profile = {
 
 export type EquipmentProfileKey = 'gym' | 'travel' | 'home'
 
+export type Supplement = { id: string; name: string; dose: string; timing: string; cal: number; protein: number }
+
 export type Settings = {
   equipmentProfile: EquipmentProfileKey
   equipment: Record<EquipmentProfileKey, Equipment[]>
@@ -36,6 +38,8 @@ export type Settings = {
   buildStartedAt?: string
   units: 'lb'
   sound: boolean
+  /** Daily supplements checklist. Macros (if any) count toward the day when checked. */
+  supplements: Supplement[]
   /** Shared passcode for the label-photo / link reader (matches APP_PASSCODE on Netlify). */
   aiPasscode?: string
   /** Mondays of weeks marked as deload (half sets; never break a streak). */
@@ -62,6 +66,7 @@ export const defaultSettings: Settings = {
   shoppingDay: 0,
   units: 'lb',
   sound: true,
+  supplements: [{ id: 'creatine', name: 'Creatine monohydrate', dose: '5 g', timing: 'Daily, any time', cal: 0, protein: 0 }],
 }
 
 export function settingsOf(p: Profile | null): Settings {

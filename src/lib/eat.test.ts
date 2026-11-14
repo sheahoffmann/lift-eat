@@ -161,3 +161,25 @@ describe('custom meals', () => {
     setCustomMeals([])
   })
 })
+
+describe('meal build instructions', () => {
+  it('converts to kitchen units', async () => {
+    const { buildLines, niceNumber, volumeText } = await import('./kitchen')
+    expect(niceNumber(1.33)).toBe('1⅓')
+    expect(volumeText(0.25)).toBe('¼ cup')
+    expect(volumeText(1 / 16)).toBe('1 tbsp')
+    const bowl = buildLines(mealsById['chicken-rice-bowl'])
+    expect(bowl.map((l) => `${l.amount} ${l.item}`)).toEqual([
+      '7 oz grilled chicken strips',
+      '1 microwave rice cup',
+      '¼ cup salsa',
+      '1 guacamole cup',
+    ])
+    const shake = buildLines(mealsById['whey-milk-breakfast'])
+    expect(shake[1].amount).toBe('11 fl oz') // 340 g ≈ 1.4 cups
+    // Smaller portion scales weighed items only.
+    const smaller = buildLines(mealsById['yogurt-bowl'], 0.8)
+    expect(smaller[0].detail).toBe('200 g')
+    expect(smaller[1].amount).toBe('1') // scoop stays whole
+  })
+})

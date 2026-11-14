@@ -21,6 +21,7 @@ import { macroTargets, settingsOf } from '../lib/profile'
 import { MacroGoals } from '../components/MacroGoals'
 import { SoundtrackLibrary, SoundtrackPick } from "./Soundtrack"
 import { PetCard } from "./Pet"
+import { MealBuild } from "../components/MealBuild"
 import { useGame } from '../lib/game'
 import { phaseOf, startWorkout, useActiveWorkout, useWorkoutsOn } from '../lib/workoutStore'
 import { openRun, openWorkout, showRecap, showWeekly } from '../lib/ui'
@@ -88,6 +89,7 @@ export function Today({ profile, go }: { profile: Profile; go: (t: TabKey) => vo
   const mealsLogged = meals.filter((m) => m.entry).length
   const [planning, setPlanning] = useState(false)
   const [listenOpen, setListenOpen] = useState(false)
+  const [showRecipe, setShowRecipe] = useState(false)
 
   const rings: RingValues = {
     train: trained || session.kind === 'rest' || session.kind === 'optional' ? 1 : active ? 0.5 : 0,
@@ -225,9 +227,19 @@ export function Today({ profile, go }: { profile: Profile; go: (t: TabKey) => vo
             >
               <Icon name="check" size={18} strokeWidth={2.6} /> Log it
             </button>
-            <button className="link-btn" style={{ alignSelf: 'center' }} onClick={() => go('eat')}>
-              Ate something else
-            </button>
+            <div className="row" style={{ justifyContent: 'center', gap: 'var(--s-4)' }}>
+              <button className="link-btn" onClick={() => setShowRecipe((s) => !s)} aria-expanded={showRecipe}>
+                {showRecipe ? 'Hide recipe' : 'How to make it'}
+              </button>
+              <button className="link-btn" style={{ color: 'var(--text-2)' }} onClick={() => go('eat')}>
+                Ate something else
+              </button>
+            </div>
+            {showRecipe && mealsById[upNext.mealId] && plan && (
+              <div className="card" style={{ padding: 'var(--s-3) var(--s-4)', background: 'var(--surface-strong)', boxShadow: 'none' }}>
+                <MealBuild meal={mealsById[upNext.mealId]} portion={plan.portion} />
+              </div>
+            )}
           </div>
         </motion.section>
       ) : plan ? (

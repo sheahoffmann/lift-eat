@@ -24,6 +24,8 @@ import { Sheet } from '../components/Sheet'
 import { Planner } from './eat/Planner'
 import { GroceryListView } from './eat/GroceryList'
 import { AteSomethingElse } from './eat/AteSomethingElse'
+import { MealBuild } from "../components/MealBuild"
+import { SupplementsCard } from "./eat/Supplements"
 
 export function Eat({ profile }: { profile: Profile }) {
   const date = todayISO()
@@ -57,6 +59,8 @@ export function Eat({ profile }: { profile: Profile }) {
 
       <MacroGoals eaten={t} targets={macroTargets(profile)} calorieRange={calorieRange({ calories: profile.calorieTarget, protein: profile.proteinTarget })} />
 
+      <SupplementsCard profile={profile} date={date} />
+
       {loading ? (
         <div className="card" style={{ height: 220, opacity: 0.5 }} aria-busy="true" aria-label="Loading" />
       ) : !plan ? (
@@ -82,6 +86,7 @@ export function Eat({ profile }: { profile: Profile }) {
               <MealRow
                 key={`${m.slot}-${m.mealId}`}
                 meal={m}
+                portion={plan.portion}
                 isNext={upNext === m}
                 onLog={async () => {
                   await logPlanned(date, m)
@@ -147,8 +152,10 @@ function MealRow({
   onLog,
   onUndo,
   onOther,
+  portion,
 }: {
   meal: PlannedMeal
+  portion: number
   isNext: boolean
   onLog: () => void
   onUndo: () => void
@@ -157,7 +164,6 @@ function MealRow({
   const e = meal.entry
   const replaced = e && !e.planned
   const label = meal.slot === 'extra' ? 'Extra' : slotMeta[meal.slot].label
-  const steps = mealsById[meal.mealId]?.steps ?? []
   const [open, setOpen] = useState(false)
 
   return (
@@ -210,20 +216,17 @@ function MealRow({
       </div>
 
       <AnimatePresence initial={false}>
-        {open && steps.length > 0 && (
-          <motion.ol
+        {open && mealsById[meal.mealId] && (
+          <motion.div
             initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
+            animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            style={{ overflow: 'hidden', margin: 'var(--s-3) 0 0', paddingLeft: '1.2em' }}
-            className="sub"
+            style={{ overflow: "hidden" }}
           >
-            {steps.map((s, k) => (
-              <li key={k} style={{ marginBottom: 4 }}>
-                {s}
-              </li>
-            ))}
-          </motion.ol>
+            <div className="card" style={{ marginTop: "var(--s-3)", padding: "var(--s-3) var(--s-4)", background: "var(--surface-strong)", boxShadow: "none" }}>
+              <MealBuild meal={mealsById[meal.mealId]} portion={portion} />
+            </div>
+          </motion.div>
         )}
       </AnimatePresence>
 
@@ -232,11 +235,16 @@ function MealRow({
           <Icon name="check" size={18} strokeWidth={2.6} /> Log it
         </button>
       )}
-      {!e && (
-        <button className="link-btn" style={{ marginTop: isNext ? 'var(--s-1)' : 0, paddingLeft: 0 }} onClick={onOther}>
-          Ate something else
+      <div className="row" style={{ gap: 'var(--s-4)', marginTop: isNext ? 'var(--s-1)' : 0 }}>
+        <button className="link-btn" style={{ paddingLeft: 0 }} onClick={() => setOpen((o) => !o)} aria-expanded={open}>
+          {open ? 'Hide recipe' : 'How to make it'}
         </button>
-      )}
+        {!e && (
+          <button className="link-btn" style={{ paddingLeft: 0, color: 'var(--text-2)' }} onClick={onOther}>
+            Ate something else
+          </button>
+        )}
+      </div>
     </motion.li>
   )
 }

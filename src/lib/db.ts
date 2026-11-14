@@ -186,6 +186,7 @@ class LiftEatDB extends Dexie {
   customMeals!: Table<CustomMeal, string>
   runs!: Table<RunRecord, string>
   pets!: Table<Pet, string>
+  supplementLog!: Table<{ id: string; date: string; suppId: string; at: string }, string>
 
   constructor() {
     super('lift-eat')
@@ -193,6 +194,9 @@ class LiftEatDB extends Dexie {
       plans: 'id, startDate, endDate',
       foodLog: 'id, date, slot, mealId',
       myFoods: 'id, name, lastUsed, barcode',
+    })
+    this.version(6).stores({
+      supplementLog: 'id, date, suppId',
     })
     this.version(5).stores({
       pets: 'id, status, species',
