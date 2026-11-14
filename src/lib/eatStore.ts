@@ -52,8 +52,12 @@ export async function lockPlan(input: {
 }
 
 export async function toggleChecked(plan: WeekPlan, key: string) {
-  const checked = plan.checked.includes(key) ? plan.checked.filter((k) => k !== key) : [...plan.checked, key]
-  await db.plans.update(plan.id, { checked })
+  // Read the latest saved list inside a transaction so quick taps never overwrite each other.
+  await db.transaction('rw', db.plans, async () => {
+    const fresh = (await db.plans.get(plan.id))?.checked ?? []
+    const checked = fresh.includes(key) ? fresh.filter((k) => k !== key) : [...fresh, key]
+    await db.plans.update(plan.id, { checked })
+  })
 }
 
 export function useDayLog(date: string) {

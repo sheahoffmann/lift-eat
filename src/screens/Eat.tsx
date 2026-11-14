@@ -22,7 +22,7 @@ import { haptic } from '../lib/haptics'
 import { Icon } from '../components/Icon'
 import { Sheet } from '../components/Sheet'
 import { Planner } from './eat/Planner'
-import { GroceryListView } from './eat/GroceryList'
+import { GroceryCard, GroceryListView } from './eat/GroceryList'
 import { AteSomethingElse } from './eat/AteSomethingElse'
 import { MealBuild } from "../components/MealBuild"
 import { SupplementsCard } from "./eat/Supplements"
@@ -81,6 +81,7 @@ export function Eat({ profile }: { profile: Profile }) {
         </section>
       ) : (
         <>
+          <GroceryCard plan={plan} onOpen={() => setGroceries(true)} />
           <ol className="stack gap-3" style={{ listStyle: 'none', margin: 0, padding: 0 }}>
             {meals.map((m) => (
               <MealRow

@@ -24,6 +24,7 @@ import { MealBuild } from '../components/MealBuild'
 import { PixelDino } from '../components/PixelDino'
 import { capture, PetDetail, statusLine, useHatchReveal, usePetProgress } from './Pet'
 import { AteSomethingElse } from './eat/AteSomethingElse'
+import { GroceryCard, GroceryListView, groceryProgress } from './eat/GroceryList'
 import { toggleSupplement } from './eat/Supplements'
 import { rarityInfo } from '../data/dinos'
 import { db } from '../lib/db'
@@ -39,7 +40,7 @@ const enter = (i: number) => ({
   transition: { type: 'spring' as const, stiffness: 140, damping: 20, delay: 0.04 * i },
 })
 
-type SheetKind = null | 'player' | 'pet' | 'goals' | 'rings' | 'weigh' | 'countdown' | 'plan' | { meal: PlannedMeal } | { other: PlannedMeal } | 'session'
+type SheetKind = null | 'groceries' | 'player' | 'pet' | 'goals' | 'rings' | 'weigh' | 'countdown' | 'plan' | { meal: PlannedMeal } | { other: PlannedMeal } | 'session'
 
 export function Today({ profile, go }: { profile: Profile; go: (t: TabKey) => void }) {
   const program = programs[profile.program]
@@ -109,6 +110,8 @@ export function Today({ profile, go }: { profile: Profile; go: (t: TabKey) => vo
   const backAtIt = !!lastWorkout && daysBetween(lastWorkout.date) >= 4 && !trained
   const isMonday = now.getDay() === 1
   const shoppingDay = plan && now.getDay() === settings.shoppingDay && plan.endDate <= addDays(date, 1)
+  // Keep the grocery list one tap away until it's shopped (first days of a new plan).
+  const showGroceries = !!plan && date <= addDays(plan.startDate, 2) && groceryProgress(plan).left > 0
 
   // Celebrate the moment all three rings close (once per day).
   const allClosed = rings.train >= 1 && rings.fuel >= 1 && rings.log >= 1
@@ -271,6 +274,12 @@ export function Today({ profile, go }: { profile: Profile; go: (t: TabKey) => vo
         </motion.button>
       )}
 
+      {showGroceries && plan && (
+        <motion.div {...enter(2)}>
+          <GroceryCard plan={plan} onOpen={() => setSheet('groceries')} />
+        </motion.div>
+      )}
+
       {/* 2. The one thing to do now */}
       <motion.div {...enter(3)}>
         <UpNextHero
@@ -345,6 +354,9 @@ export function Today({ profile, go }: { profile: Profile; go: (t: TabKey) => vo
       </motion.section>
 
       {/* Detail sheets */}
+      <Sheet open={sheet === 'groceries'} onClose={() => setSheet(null)} title="Grocery list">
+        {plan && <GroceryListView plan={plan} />}
+      </Sheet>
       <Sheet open={sheet === 'player'} onClose={() => setSheet(null)} title="Player card">
         <PlayerCard stats={stats} />
       </Sheet>
