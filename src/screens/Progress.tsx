@@ -68,8 +68,22 @@ export function Progress({ profile }: { profile: Profile }) {
     const per = new Map<string, number>()
     for (const s of week) per.set(s.exerciseId, (per.get(s.exerciseId) ?? 0) + 1)
     const m = setsPerMuscle([...per].filter(([id]) => exercises[id]).map(([id, n]) => ({ ex: exercises[id], sets: n })))
-    return { per: m, ranked: (Object.entries(m) as [MuscleSlug, number][]).sort((a, b) => b[1] - a[1]) }
-  }, [game, thisWeek])
+    // Runs and other cardio count as light leg work: ~1 set per 10 minutes, weighted by
+    // the session's muscle emphasis (sprints lean on hamstrings/glutes, easy runs on calves).
+    const program = programs[profile.program]
+    const fallback: Partial<Record<MuscleSlug, number>> = { calves: 0.6, quadriceps: 0.5, hamstring: 0.5, gluteal: 0.5 }
+    let cardioMin = 0
+    for (const w of game.data.workouts) {
+      if (!w.finishedAt || !w.cardio || w.date < thisWeek || w.date > end) continue
+      cardioMin += w.cardio.minutes
+      const emphasis = program.week.find((d) => d.key === w.sessionKey)?.muscles ?? fallback
+      const setsEq = w.cardio.minutes / 10
+      for (const [muscle, weight] of Object.entries(emphasis) as [MuscleSlug, number][]) {
+        m[muscle] = Math.round(((m[muscle] ?? 0) + setsEq * weight) * 10) / 10
+      }
+    }
+    return { per: m, cardioMin, ranked: (Object.entries(m) as [MuscleSlug, number][]).filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1]) }
+  }, [game, thisWeek, profile.program])
 
   if (!game) return <main className="screen" aria-busy="true" />
 
@@ -299,10 +313,13 @@ export function Progress({ profile }: { profile: Profile }) {
                 </span>
               </div>
             ))}
+            {balance.cardioMin > 0 && (
+              <span className="caption">Includes {balance.cardioMin} min of cardio, counted as light leg work (about 1 set per 10 min).</span>
+            )}
           </div>
         ) : (
-          <p className="caption" style={{ textAlign: 'center' }}>
-            Muscles light up as you log sets this week.
+          <p className="caption" style={{ textAlign: "center" }}>
+            Muscles light up as you log workouts and runs this week.
           </p>
         )}
       </section>
