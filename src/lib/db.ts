@@ -145,6 +145,16 @@ export type RunRecord = {
   name?: string
 }
 
+/** Training pet (dinosaur). One active at a time; captured ones stay forever. */
+export type Pet = {
+  id: string
+  species: string
+  status: 'active' | 'captured'
+  hatchedAt: string // ISO day growth starts counting
+  capturedAt?: string
+  createdAt: string
+}
+
 /** A meal option the user added to the planner. */
 export type CustomMeal = {
   id: string
@@ -175,6 +185,7 @@ class LiftEatDB extends Dexie {
   attributes!: Table<AttributeSnapshot, string>
   customMeals!: Table<CustomMeal, string>
   runs!: Table<RunRecord, string>
+  pets!: Table<Pet, string>
 
   constructor() {
     super('lift-eat')
@@ -182,6 +193,9 @@ class LiftEatDB extends Dexie {
       plans: 'id, startDate, endDate',
       foodLog: 'id, date, slot, mealId',
       myFoods: 'id, name, lastUsed, barcode',
+    })
+    this.version(5).stores({
+      pets: 'id, status, species',
     })
     this.version(4).stores({
       runs: 'id, workoutId, status',

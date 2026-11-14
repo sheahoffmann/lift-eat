@@ -142,3 +142,11 @@ export function simplify(points: RunPoint[], max = 600) {
   out.push(points.at(-1)!)
   return out
 }
+
+/** "1h 30m" / "32m 10s", Strava-style. */
+export function formatRunTime(sec: number) {
+  const h = Math.floor(sec / 3600)
+  const m = Math.floor((sec % 3600) / 60)
+  const s = Math.floor(sec % 60)
+  return h ? `${h}h ${m}m` : `${m}m ${String(s).padStart(2, '0')}s`
+}

@@ -14,10 +14,10 @@ import type { Profile } from '../../lib/profile'
 import { CountUp, Story } from '../../components/Story'
 import { Icon } from '../../components/Icon'
 import { prText } from './WorkoutView'
-import { renderWorkoutImage, shareBlob } from '../../lib/shareImage'
+import { renderRunImage, renderWorkoutImage, shareBlob } from '../../lib/shareImage'
 import { programs } from '../../data/programs'
 import { RunRoute } from '../../components/RunRoute'
-import { METERS_PER_MILE, formatPace, runCalories, type RunPoint } from '../../lib/runMath'
+import { METERS_PER_MILE, formatPace, formatRunTime, runCalories, type RunPoint } from '../../lib/runMath'
 
 export function WorkoutRecap({ workout, profile, onClose }: { workout: Workout; profile: Profile; onClose: () => void }) {
   const sets = useLiveQuery(() => db.sets.where('workoutId').equals(workout.id).toArray(), [workout.id])
@@ -49,6 +49,11 @@ export function WorkoutRecap({ workout, profile, onClose }: { workout: Workout; 
   const bw = data?.weighIns.filter((x) => x.lb > 0).at(-1)?.lb ?? (profile.body === 'female' ? 135 : 190)
   const avgPace = run?.distanceM && run.movingSec ? (run.movingSec / run.distanceM) * METERS_PER_MILE : null
   const calories = runCalories(workout.cardio?.distanceMi ?? 0, bw)
+  const runStats = [
+    { label: 'Distance', value: `${(workout.cardio?.distanceMi ?? 0).toFixed(2)} mi` },
+    { label: 'Pace', value: `${formatPace(avgPace)} /mi` },
+    { label: 'Time', value: formatRunTime(run?.movingSec ?? workout.durationSec ?? 0) },
+  ]
   const volume = Math.round(workout.volume ?? 0)
   const prevVolume = previous?.volume ?? null
   const delta = prevVolume != null ? volume - Math.round(prevVolume) : null
@@ -132,16 +137,27 @@ export function WorkoutRecap({ workout, profile, onClose }: { workout: Workout; 
     // Run route + splits (GPS or imported runs)
     ...(run && run.points.length > 1
       ? [
-          <div key="route" className="stack gap-4">
-            {kicker('Your run')}
-            <div className="card card--glow" style={{ padding: 'var(--s-3)' }}>
-              <RunRoute points={run.points as RunPoint[]} height={260} label={`Route of your ${(workout.cardio?.distanceMi ?? 0).toFixed(2)} mile run`} />
+          <div key="route" className="stack" style={{ alignItems: 'center', textAlign: 'center', gap: 'var(--s-3)' }}>
+            {runStats.map((s, k) => (
+              <motion.div key={s.label} className="stack" style={{ gap: 0 }} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08 * k }}>
+                <span className="sub" style={{ color: 'var(--text)', fontWeight: 600 }}>
+                  {s.label}
+                </span>
+                <span className="num" style={{ fontSize: 'clamp(2.2rem, 11vw, 3rem)', fontWeight: 800, letterSpacing: '-0.03em', lineHeight: 1.05 }}>
+                  {s.value}
+                </span>
+              </motion.div>
+            ))}
+            <div style={{ width: '78%', marginTop: 'var(--s-2)' }}>
+              <RunRoute points={run.points as RunPoint[]} height={210} label={`Route of your ${(workout.cardio?.distanceMi ?? 0).toFixed(2)} mile run`} />
             </div>
+            <span className="caption" style={{ fontWeight: 800, letterSpacing: '0.12em' }}>
+              GRIT
+            </span>
+          </div>,
+          <div key="splits" className="stack gap-4">
+            {kicker('Splits')}
             <div className="card stats">
-              <div className="stat">
-                <span className="stat__value num">{(workout.cardio?.distanceMi ?? 0).toFixed(2)}</span>
-                <span className="stat__label">miles</span>
-              </div>
               <div className="stat">
                 <span className="stat__value num">{formatPace(avgPace)}</span>
                 <span className="stat__label">avg /mi</span>
@@ -150,7 +166,12 @@ export function WorkoutRecap({ workout, profile, onClose }: { workout: Workout; 
                 <span className="stat__value num">{calories}</span>
                 <span className="stat__label">kcal</span>
               </div>
+              <div className="stat">
+                <span className="stat__value num">{Math.round((run.elevGainM ?? 0) * 3.281)}</span>
+                <span className="stat__label">ft gain</span>
+              </div>
             </div>
+            {(run.splits?.length ?? 0) === 0 && <p className="sub">Splits appear on runs longer than a mile.</p>}
             {(run.splits?.length ?? 0) > 0 && (
               <div className="stack gap-2">
                 {run.splits!.map((s, i) => (
@@ -166,7 +187,6 @@ export function WorkoutRecap({ workout, profile, onClose }: { workout: Workout; 
                 ))}
               </div>
             )}
-            {(run.elevGainM ?? 0) > 5 && <span className="caption">Elevation gain ≈ {Math.round((run.elevGainM ?? 0) * 3.281)} ft</span>}
           </div>,
         ]
       : []),
@@ -300,6 +320,14 @@ export function WorkoutRecap({ workout, profile, onClose }: { workout: Workout; 
         style={{ position: 'relative', zIndex: 5 }}
         onClick={async (e) => {
           e.stopPropagation()
+          if (run && run.points.length > 1) {
+            const rb = await renderRunImage({
+              stats: [runStats[0], (run.elevGainM ?? 0) > 5 ? { label: "Elev Gain", value: `${Math.round((run.elevGainM ?? 0) * 3.281)} ft` } : runStats[1], runStats[2]],
+              route: run.points as RunPoint[],
+            })
+            if (rb) await shareBlob(rb, "grit-run.png", workout.name)
+            return
+          }
           const blob = await renderWorkoutImage({
             title: workout.name.replace(': Refresh', ''),
             date: new Date(workout.date + 'T12:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }),
@@ -320,7 +348,7 @@ export function WorkoutRecap({ workout, profile, onClose }: { workout: Workout; 
             splits: run?.splits?.map((s, i) => `Mile ${i + 1}   ${formatPace(s)}`),
             footer: fact && !isCardio ? `≈ ${fact.count} ${fact.count === 1 ? fact.object.one : fact.object.many}` : `${after.attributes.ovr} OVR · Level ${after.level.level}`,
           })
-          if (blob) await shareBlob(blob, 'lift-and-eat-workout.png', workout.name)
+          if (blob) await shareBlob(blob, 'grit-workout.png', workout.name)
         }}
       >
         <Icon name="share" size={18} /> Share image

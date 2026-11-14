@@ -16,7 +16,7 @@ export function GroceryListView({ plan }: { plan: WeekPlan }) {
 
   async function share() {
     haptic.light()
-    const text = listAsText(list, 'Lift & Eat grocery list', topupLabel)
+    const text = listAsText(list, 'GRIT grocery list', topupLabel)
     try {
       if (navigator.share) {
         await navigator.share({ title: 'Grocery list', text })

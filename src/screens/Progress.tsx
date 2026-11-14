@@ -118,7 +118,7 @@ export function Progress({ profile }: { profile: Profile }) {
               ],
               body: profile.body,
             })
-            if (b) shareBlob(b, 'lift-and-eat-card.png', 'My player card')
+            if (b) shareBlob(b, 'grit-card.png', 'My player card')
           }}
         >
           <Icon name="share" size={15} /> Share card

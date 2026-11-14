@@ -1144,3 +1144,52 @@ p {
 .gap-6 { gap: var(--s-6); }
 
 a.chip { text-decoration: none; }
+
+/* ---------- Pixel dinos ---------- */
+.pixel-dino {
+  position: relative;
+  display: grid;
+  place-items: center;
+  flex: none;
+}
+
+.pixel-dino__shadow {
+  position: absolute;
+  left: 24%;
+  right: 24%;
+  bottom: 6%;
+  height: 7%;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.35);
+  filter: blur(1px);
+}
+
+.pixel-dino--wobble img { animation: dino-wobble 2.6s steps(6) infinite; transform-origin: 50% 90%; }
+.pixel-dino--legendary { filter: drop-shadow(0 0 10px rgba(255, 211, 107, 0.65)); }
+
+@keyframes dino-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3%); }
+}
+
+@keyframes dino-wobble {
+  0%, 60%, 100% { transform: rotate(0deg); }
+  70% { transform: rotate(-6deg); }
+  80% { transform: rotate(6deg); }
+  90% { transform: rotate(-3deg); }
+}
+
+.pixel-habitat {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+}
+
+.pixel-habitat__ground {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 8%;
+  height: 2px;
+  background: repeating-linear-gradient(90deg, var(--hairline) 0 6px, transparent 6px 10px);
+}

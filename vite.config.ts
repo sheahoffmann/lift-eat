@@ -15,8 +15,8 @@ export default defineConfig({
       injectRegister: false,
       includeAssets: ['icon.svg', 'apple-touch-icon.png'],
       manifest: {
-        name: 'Lift & Eat',
-        short_name: 'Lift & Eat',
+        name: 'GRIT',
+        short_name: 'GRIT',
         description: 'Workout and nutrition tracker for athletes in season.',
         display: 'standalone',
         orientation: 'portrait',

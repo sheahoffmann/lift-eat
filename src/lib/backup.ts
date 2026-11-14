@@ -3,7 +3,7 @@ import { db } from './db'
 import { saveProfile, type Profile } from './profile'
 import { exercises } from '../data/exercises'
 
-const tables = ['plans', 'foodLog', 'myFoods', 'workouts', 'sets', 'exerciseSettings', 'overrides', 'weighIns', 'xp', 'achievements', 'attributes', 'customMeals', 'runs'] as const
+const tables = ['plans', 'foodLog', 'myFoods', 'workouts', 'sets', 'exerciseSettings', 'overrides', 'weighIns', 'xp', 'achievements', 'attributes', 'customMeals', 'runs', 'pets'] as const
 
 export async function buildBackup(profile: Profile | null) {
   const data: Record<string, unknown[]> = {}
@@ -30,7 +30,7 @@ const stamp = () => new Date().toISOString().slice(0, 10)
 
 export async function exportJSON(profile: Profile | null) {
   const b = await buildBackup(profile)
-  download(JSON.stringify(b, null, 1), `lift-eat-backup-${stamp()}.json`, 'application/json')
+  download(JSON.stringify(b, null, 1), `grit-backup-${stamp()}.json`, 'application/json')
 }
 
 const csvCell = (v: unknown) => {
@@ -42,23 +42,23 @@ const toCSV = (rows: Record<string, unknown>[], cols: string[]) => [cols.join(',
 export async function exportCSV(kind: 'sets' | 'food' | 'weight' | 'workouts') {
   if (kind === 'sets') {
     const rows = (await db.sets.toArray()).map((s) => ({ ...s, exercise: exercises[s.exerciseId]?.name ?? s.exerciseId }))
-    download(toCSV(rows, ['date', 'exercise', 'setIndex', 'weight', 'reps', 'seconds', 'yards', 'bodyweight', 'workoutId']), `lift-eat-sets-${stamp()}.csv`, 'text/csv')
+    download(toCSV(rows, ['date', 'exercise', 'setIndex', 'weight', 'reps', 'seconds', 'yards', 'bodyweight', 'workoutId']), `grit-sets-${stamp()}.csv`, 'text/csv')
   } else if (kind === 'food') {
     const rows = await db.foodLog.toArray()
-    download(toCSV(rows as never, ['date', 'slot', 'name', 'servings', 'cal', 'protein', 'carbs', 'fat', 'planned']), `lift-eat-food-${stamp()}.csv`, 'text/csv')
+    download(toCSV(rows as never, ['date', 'slot', 'name', 'servings', 'cal', 'protein', 'carbs', 'fat', 'planned']), `grit-food-${stamp()}.csv`, 'text/csv')
   } else if (kind === 'weight') {
     const rows = await db.weighIns.orderBy('date').toArray()
-    download(toCSV(rows as never, ['date', 'lb', 'waist']), `lift-eat-weight-${stamp()}.csv`, 'text/csv')
+    download(toCSV(rows as never, ['date', 'lb', 'waist']), `grit-weight-${stamp()}.csv`, 'text/csv')
   } else {
     const rows = (await db.workouts.toArray()).map((w) => ({ ...w, prs: w.prs?.length ?? 0, cardioType: w.cardio?.type, cardioMinutes: w.cardio?.minutes }))
-    download(toCSV(rows as never, ['date', 'name', 'durationSec', 'volume', 'setsDone', 'prs', 'cardioType', 'cardioMinutes']), `lift-eat-workouts-${stamp()}.csv`, 'text/csv')
+    download(toCSV(rows as never, ['date', 'name', 'durationSec', 'volume', 'setsDone', 'prs', 'cardioType', 'cardioMinutes']), `grit-workouts-${stamp()}.csv`, 'text/csv')
   }
 }
 
 /** Replace all local data with a backup file's contents. */
 export async function restoreBackup(file: File) {
   const json = JSON.parse(await file.text())
-  if (json?.app !== 'lift-eat' || !json.data) throw new Error('Not a Lift & Eat backup file.')
+  if (json?.app !== 'lift-eat' || !json.data) throw new Error('Not a GRIT backup file.')
   await db.transaction('rw', tables.map((t) => db.table(t)), async () => {
     for (const t of tables) {
       await db.table(t).clear()

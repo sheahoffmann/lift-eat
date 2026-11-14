@@ -135,7 +135,7 @@ export async function renderWorkoutImage(d: WorkoutShare): Promise<Blob | null> 
   const ctx = canvas.getContext('2d')
   if (!ctx) return null
   background(ctx)
-  text(ctx, 'LIFT & EAT', 80, 120, 34, 800, ORANGE)
+  text(ctx, 'GRIT', 80, 120, 34, 800, ORANGE)
   text(ctx, d.date, W - 80, 120, 30, 500, 'rgba(247,243,240,0.6)', 'right')
   text(ctx, d.title, 80, 210, 76, 800)
 
@@ -173,7 +173,38 @@ export async function renderWorkoutImage(d: WorkoutShare): Promise<Blob | null> 
   return new Promise((res) => canvas.toBlob((b) => res(b), 'image/png'))
 }
 
-export type CardShare = { name: string; ovr: number; tier: string; level: string; attrs: [string, number][]; body: 'male' | 'female' }
+export type RunShare = { stats: { label: string; value: string }[]; route: RunPoint[] }
+
+/** Strava-style story card: stacked stats, the route line, logo at the bottom (9:16). */
+export async function renderRunImage(d: RunShare): Promise<Blob | null> {
+  const RW = 1080
+  const RH = 1920
+  const canvas = document.createElement('canvas')
+  canvas.width = RW
+  canvas.height = RH
+  const ctx = canvas.getContext('2d')
+  if (!ctx) return null
+  ctx.fillStyle = '#0a0807'
+  ctx.fillRect(0, 0, RW, RH)
+  const g = ctx.createRadialGradient(RW * 0.5, RH * 0.35, 0, RW * 0.5, RH * 0.35, RH * 0.75)
+  g.addColorStop(0, 'rgba(255,110,30,0.30)')
+  g.addColorStop(0.5, 'rgba(122,52,16,0.30)')
+  g.addColorStop(1, 'rgba(10,8,7,0)')
+  ctx.fillStyle = g
+  ctx.fillRect(0, 0, RW, RH)
+
+  let y = 300
+  for (const s of d.stats) {
+    text(ctx, s.label, RW / 2, y, 52, 600, 'rgba(247,243,240,0.85)', 'center')
+    text(ctx, s.value, RW / 2, y + 120, 128, 800, '#f7f3f0', 'center')
+    y += 290
+  }
+  drawRoute(ctx, d.route, 190, y - 20, RW - 380, RH - y - 260)
+  text(ctx, 'GRIT', RW / 2, RH - 120, 64, 900, '#f7f3f0', 'center')
+  return new Promise((res) => canvas.toBlob((b) => res(b), 'image/png'))
+}
+
+export type CardShare ={ name: string; ovr: number; tier: string; level: string; attrs: [string, number][]; body: 'male' | 'female' }
 
 export async function renderCardImage(d: CardShare): Promise<Blob | null> {
   const canvas = document.createElement('canvas')
@@ -218,7 +249,7 @@ export async function renderCardImage(d: CardShare): Promise<Blob | null> {
     text(ctx, String(v), x, cy + 940, 72, 800, '#fff', 'center')
     text(ctx, k, x, cy + 985, 28, 800, 'rgba(255,255,255,0.8)', 'center')
   })
-  text(ctx, 'LIFT & EAT', W / 2, H - 60, 30, 800, ORANGE, 'center')
+  text(ctx, 'GRIT', W / 2, H - 60, 30, 800, ORANGE, 'center')
   return new Promise((res) => canvas.toBlob((b) => res(b), 'image/png'))
 }
 

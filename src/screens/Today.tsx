@@ -20,6 +20,7 @@ import { mealsById, slotMeta } from '../data/meals'
 import { macroTargets, settingsOf } from '../lib/profile'
 import { MacroGoals } from '../components/MacroGoals'
 import { SoundtrackLibrary, SoundtrackPick } from "./Soundtrack"
+import { PetCard } from "./Pet"
 import { useGame } from '../lib/game'
 import { phaseOf, startWorkout, useActiveWorkout, useWorkoutsOn } from '../lib/workoutStore'
 import { openRun, openWorkout, showRecap, showWeekly } from '../lib/ui'
@@ -158,6 +159,10 @@ export function Today({ profile, go }: { profile: Profile; go: (t: TabKey) => vo
 
       <motion.div {...enter(1)}>
         <PlayerCard stats={stats} />
+      </motion.div>
+
+      <motion.div {...enter(1)}>
+        <PetCard profile={profile} />
       </motion.div>
 
       <motion.section {...enter(2)} className="card" aria-label="Daily rings">

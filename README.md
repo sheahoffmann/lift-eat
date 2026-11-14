@@ -1,4 +1,4 @@
-# Lift & Eat
+# GRIT
 
 A home-screen web app (PWA) for workouts and nutrition, styled like an athlete in season.
 Data stays on each phone (no accounts, no server).

@@ -40,7 +40,7 @@ export function Onboarding() {
         style={{ alignItems: 'center', textAlign: 'center', gap: 'var(--s-3)', marginTop: 'var(--s-6)' }}
       >
         <span className="chip chip--accent">
-          <Icon name="sparkle" size={14} /> Lift &amp; Eat
+          <Icon name="sparkle" size={14} /> GRIT
         </span>
         <h1 className="large-title">Train like you're in season.</h1>
         <p className="sub" style={{ maxWidth: 320 }}>
