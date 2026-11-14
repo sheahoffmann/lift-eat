@@ -4,7 +4,6 @@ import { AnimatePresence, motion } from 'motion/react'
 import { links, pickFor, soundtrack, type ListenItem, type ListenKind } from '../data/soundtrack'
 import type { SessionKind } from '../data/programs'
 import { todayISO } from '../lib/profile'
-import { haptic } from '../lib/haptics'
 import { Icon } from '../components/Icon'
 import { Collapsible } from '../components/Collapsible'
 
@@ -29,8 +28,7 @@ function ListenLinks({ item }: { item: ListenItem }) {
 
 /** Compact "today's pick" card (Today tab, workout screen). */
 export function SoundtrackPick({ kind, onMore }: { kind: SessionKind; onMore: () => void }) {
-  const [seed, setSeed] = useState(0)
-  const item = pickFor(kind, todayISO(), seed)
+  const item = pickFor(kind, todayISO())
   return (
     <Collapsible
       id="soundtrack"
@@ -43,19 +41,6 @@ export function SoundtrackPick({ kind, onMore }: { kind: SessionKind; onMore: ()
       summary={`${kindLabel[item.kind]} · ${item.title}`}
     >
     <div className="stack gap-3">
-      <div className="card-row" style={{ justifyContent: "flex-end" }}>
-        <button
-          className="link-btn"
-          style={{ minHeight: 32, padding: 0 }}
-          onClick={() => {
-            haptic.light()
-            setSeed((s) => s + 1)
-          }}
-          aria-label="Shuffle suggestion"
-        >
-          <Icon name="swap" size={14} /> Shuffle
-        </button>
-      </div>
       <AnimatePresence mode="wait">
         <motion.div key={item.id} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} className="stack gap-1">
           <span className="caption accent" style={{ fontWeight: 700 }}>
