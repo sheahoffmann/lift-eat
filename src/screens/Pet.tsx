@@ -127,7 +127,7 @@ function PetDetail({ p }: { p: PetProgress }) {
   return (
     <div className="stack gap-5">
       <div className="card card--glow stack" style={{ alignItems: 'center', textAlign: 'center', gap: 'var(--s-2)' }}>
-        <PixelDino species={p.species} stage={p.stage} size={170} mood={p.todayFed ? 'happy' : 'hungry'} roam={p.stage !== 'Egg'} />
+        <PixelDino species={p.species} stage={p.stage} size={210} mood={p.todayFed ? 'happy' : 'hungry'} roam={p.stage !== 'Egg'} />
         <span className="pill-sm" style={{ color: rarity.color, background: 'var(--surface-strong)' }}>
           {rarity.label}
         </span>
@@ -138,9 +138,8 @@ function PetDetail({ p }: { p: PetProgress }) {
         </span>
       </div>
 
-      <section className="stack gap-2">
-        <h3 className="eyebrow">How it works</h3>
-        <ul className="stack gap-2 sub" style={{ margin: 0, paddingLeft: '1.1em' }}>
+      <Collapsible id="pet-howto" label="How it works" title="How it works" summary="Feed it daily to grow and capture it" defaultCollapsed>
+        <ul className="stack gap-2 sub" style={{ margin: 0, paddingLeft: "1.1em" }}>
           <li>
             <strong style={{ color: 'var(--text)' }}>Feed it</strong> by closing your Train ring (a workout, or a planned rest day) and either Fuel (protein + calories) or Log (3+ foods logged).
           </li>
@@ -151,7 +150,7 @@ function PetDetail({ p }: { p: PetProgress }) {
             Rarity sets the challenge: Common 3 days, Rare 7, Epic 14, Legendary 21.
           </li>
         </ul>
-      </section>
+      </Collapsible>
 
       <section className="stack gap-3">
         <div className="card-row">

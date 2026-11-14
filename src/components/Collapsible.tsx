@@ -28,6 +28,7 @@ export function Collapsible({
   summary,
   action,
   done = false,
+  defaultCollapsed = false,
   hero = false,
   glow = false,
   children,
@@ -40,6 +41,8 @@ export function Collapsible({
   action?: ReactNode
   /** Finished for today: collapses automatically unless you open it again. */
   done?: boolean
+  /** Start collapsed until the person opens it. */
+  defaultCollapsed?: boolean
   hero?: boolean
   glow?: boolean
   children: ReactNode
@@ -47,7 +50,7 @@ export function Collapsible({
 }) {
   const today = todayISO()
   const [pref, setPref] = useState<string | null>(() => read(id))
-  const collapsed = done ? pref !== `open:${today}` : pref === 'closed'
+  const collapsed = done ? pref !== `open:${today}` : pref ? pref === "closed" : defaultCollapsed
 
   function toggle() {
     haptic.light()

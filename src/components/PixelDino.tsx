@@ -252,7 +252,7 @@ export function renderSprite(sp: DinoSpecies, stage: Stage, silhouette = false, 
   // Pixelate: hard alpha, snap colors, add outline.
   const img = c.getImageData(0, 0, N, N)
   const d = img.data
-  const palette = [sp.colors.body, sp.colors.belly, sp.colors.accent, EYE, WHITE, CHEEK, SHELL, spot, '#f5ecd7'].map((h) => {
+  const palette = (stage === 'Egg' ? [SHELL, spot, EYE] : [sp.colors.body, sp.colors.belly, sp.colors.accent, EYE, WHITE, CHEEK, SHELL, spot, '#f5ecd7']).map((h) => {
     const n = parseInt(h.slice(1), 16)
     return [(n >> 16) & 255, (n >> 8) & 255, n & 255]
   })
