@@ -10,7 +10,7 @@ vi.mock('@netlify/blobs', () => ({
   }),
 }))
 
-const { default: handler } = await import('./shared.mts')
+const { default: handler } = await import('./functions/shared.mts')
 const req = (method: string, body?: unknown, pass = 'pw') =>
   new Request('http://x/api/shared', { method, headers: { 'x-passcode': pass, 'content-type': 'application/json' }, body: body ? JSON.stringify(body) : undefined })
 
