@@ -3,7 +3,7 @@ import { db } from './db'
 import { saveProfile, type Profile } from './profile'
 import { exercises } from '../data/exercises'
 
-const tables = ['plans', 'foodLog', 'myFoods', 'workouts', 'sets', 'exerciseSettings', 'overrides', 'weighIns', 'xp', 'achievements', 'attributes', 'customMeals', 'runs', 'pets', 'supplementLog', 'customExercises'] as const
+const tables = ['plans', 'foodLog', 'myFoods', 'workouts', 'sets', 'exerciseSettings', 'overrides', 'weighIns', 'xp', 'achievements', 'attributes', 'customMeals', 'runs', 'pets', 'supplementLog', 'customExercises', 'labelLibrary'] as const
 
 export async function buildBackup(profile: Profile | null) {
   const data: Record<string, unknown[]> = {}

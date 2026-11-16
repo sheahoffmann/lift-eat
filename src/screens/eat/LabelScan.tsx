@@ -10,6 +10,7 @@ import { haptic } from '../../lib/haptics'
 import { applyLabels, myLabelsOn } from '../../data/myLabels'
 import { mealChanges, mealSnapshot, type MealChange } from '../../lib/weekReview'
 import { WeekReview } from './WeekReview'
+import { addToLibrary } from '../../lib/labelLibrary'
 import { Icon } from '../../components/Icon'
 
 type Row = {
@@ -81,13 +82,15 @@ export function LabelScan({ profile, plan, preset, onDone }: { profile: Profile;
       const c = item && toCatalog(item, res, Number(r.grams) || undefined)
       if (c) {
         scanned[r.match] = c
+        await addToLibrary(r.match, c) // kept forever in this phone's label library
         n++
       }
     }
     const before = plan ? mealSnapshot(plan.picks, plan.portion) : null
     // Apply right away so the review below shows the new numbers.
-    applyLabels(myLabelsOn(profile.program, settings.myLabels), scanned)
-    updateSettings(profile, { scannedLabels: scanned })
+    const off = (settings.labelOff ?? []).filter((id) => !(id in scanned))
+    applyLabels(myLabelsOn(profile.program, settings.myLabels), scanned, off)
+    updateSettings(profile, { scannedLabels: scanned, labelOff: off })
     if (plan && before) setChanges(mealChanges(before, mealSnapshot(plan.picks, plan.portion)))
     haptic.celebrate()
     setSaved(n)

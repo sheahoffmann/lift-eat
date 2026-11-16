@@ -48,6 +48,8 @@ export type Settings = {
   myLabels?: boolean
   /** Labels you scanned in the app: grocery item id → nutrition per base unit (this phone only). */
   scannedLabels?: Record<string, ScannedLabel>
+  /** Items set back to standard (typical) values, ignoring any label. */
+  labelOff?: string[]
 }
 
 export type ScannedLabel = { name: string; cal: number; protein: number; carbs: number; fat: number; serving: string; scannedAt: string }

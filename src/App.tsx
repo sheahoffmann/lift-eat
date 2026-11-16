@@ -25,6 +25,7 @@ import { useCustomMealsSync } from './lib/customMeals'
 import { useCustomExercisesSync } from './lib/customExercises'
 import { applyLabels, myLabelsOn } from './data/myLabels'
 import './lib/tune' // registers tuned meals as plans load
+import { backfillLibrary } from './lib/labelLibrary'
 
 export default function App() {
   const [profile] = useProfile()
@@ -37,9 +38,13 @@ export default function App() {
   useEffect(() => {
     restoreActiveRun()
   }, [])
+  useEffect(() => {
+    if (profile) backfillLibrary(profile).catch(() => {})
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profile?.createdAt])
   const settings = settingsOf(profile)
   // Exact label numbers for this phone's products (before anything computes macros).
-  applyLabels(myLabelsOn(profile?.program, settings.myLabels), settings.scannedLabels)
+  applyLabels(myLabelsOn(profile?.program, settings.myLabels), settings.scannedLabels, settings.labelOff)
   const lastTier = useRef<string | null>(null)
 
   useEffect(() => {

@@ -3,6 +3,9 @@ import { useRef, useState } from 'react'
 import type { WeekPlan } from '../../lib/db'
 import type { Profile } from '../../lib/profile'
 import { LabelScan } from './LabelScan'
+import { activeLabel, chooseLabel, deleteFromLibrary, useLabelLibrary } from '../../lib/labelLibrary'
+import { myLabels, myLabelsOn, originalItem } from '../../data/myLabels'
+import { settingsOf } from '../../lib/profile'
 import { sectionOrder } from '../../data/groceryItems'
 import { buildGroceryList, listAsText, needText, packText, type GroceryLine } from '../../lib/grocery'
 import { addDays, markShopped, toggleChecked } from '../../lib/eatStore'
@@ -60,6 +63,9 @@ export function GroceryListView({ plan, profile }: { plan: WeekPlan; profile?: P
   const fileRef = useRef<HTMLInputElement>(null)
   const pendingItem = useRef<string | null>(null)
   const photoCount = Object.keys(photos).length
+  const library = useLabelLibrary()
+  const [historyFor, setHistoryFor] = useState<string | null>(null)
+  const builtInOn = !!profile && myLabelsOn(profile.program, settingsOf(profile).myLabels)
 
   const list = buildGroceryList(plan.picks, plan.portion, plan.pantryHave)
   const topupLabel = weekday(addDays(plan.startDate, list.topupDay))
@@ -86,7 +92,13 @@ export function GroceryListView({ plan, profile }: { plan: WeekPlan; profile?: P
     const perishable = line.item.shelfDays < 7
     const hasPhoto = !!photos[line.item.id]
     const canSnap = !!profile && !line.item.customUnit
+    const active = profile && canSnap ? activeLabel(line.item.id, profile) : null
+    const saved = library.filter((l) => l.itemId === line.item.id)
+    const builtIn = builtInOn ? myLabels[line.item.id] : undefined
+    const historyCount = saved.length + (builtIn ? 1 : 0)
+    const open = historyFor === line.item.id
     return (
+      <>
       <div className={`g-row ${checked ? 'g-row--done' : ''}`}>
         <button
           className="row"
@@ -108,8 +120,13 @@ export function GroceryListView({ plan, profile }: { plan: WeekPlan; profile?: P
             <span className="caption">
               {packText(line)}
               {needText(line) && ` · ${needText(line)}`}
-              {hasPhoto && <span className="accent"> · label added</span>}
+              {hasPhoto && <span className="accent"> · new photo added</span>}
             </span>
+            {active && active.kind !== 'standard' && (
+              <span className="caption" style={{ color: 'var(--accent)' }}>
+                ✓ {active.name === line.item.name ? 'Label saved' : `Using: ${active.name}`}
+              </span>
+            )}
           </div>
           {perishable && <Icon name="leaf" size={16} className="accent" label="Perishable" />}
           {line.item.frozen && <Icon name="snow" size={16} className="muted" label="Frozen" />}
@@ -127,7 +144,58 @@ export function GroceryListView({ plan, profile }: { plan: WeekPlan; profile?: P
             <Icon name={hasPhoto ? 'check' : 'camera'} size={18} strokeWidth={hasPhoto ? 3 : undefined} />
           </button>
         )}
+        {canSnap && historyCount > 0 && (
+          <button
+            className="icon-btn"
+            style={{ flex: 'none', width: 40, height: 40, position: 'relative', outline: open ? '2px solid var(--accent)' : undefined }}
+            aria-label={`${line.item.name} label history (${historyCount})`}
+            aria-expanded={open}
+            onClick={() => setHistoryFor(open ? null : line.item.id)}
+          >
+            <Icon name="clock" size={18} />
+            {historyCount > 1 && (
+              <span className="num" style={{ position: 'absolute', top: -2, right: -2, minWidth: 16, height: 16, borderRadius: 8, background: 'var(--accent-fill)', color: '#fff', fontSize: 10, fontWeight: 700, display: 'grid', placeItems: 'center', padding: '0 3px' }}>
+                {historyCount}
+              </span>
+            )}
+          </button>
+        )}
       </div>
+      {open && profile && (
+        <div className="stack" style={{ gap: 4, padding: '0 0 var(--s-3) 36px' }} role="radiogroup" aria-label={`${line.item.name} labels`}>
+          {saved.map((l) => {
+            const on = active?.kind === 'scanned' && active.name === l.name && active.serving === l.serving
+            return (
+              <div key={l.id} className="row" style={{ gap: 8, alignItems: 'center' }}>
+                <button className="option" role="radio" aria-checked={on} style={{ flex: 1, padding: '8px 12px', minHeight: 44 }} onClick={() => { haptic.light(); chooseLabel(profile, line.item.id, l) }}>
+                  <div className="stack" style={{ flex: 1, minWidth: 0, gap: 1 }}>
+                    <span style={{ fontWeight: 600, fontSize: 'var(--fs-sub)' }}>{l.name} {on && <Icon name="check" size={13} strokeWidth={3} className="accent" />}</span>
+                    <span className="caption">{l.serving} · scanned {new Date(l.scannedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span>
+                  </div>
+                </button>
+                <button className="link-btn" style={{ color: 'var(--text-3)', minHeight: 44, padding: '0 4px' }} aria-label={`Delete ${l.name} from history`} onClick={() => deleteFromLibrary(profile, l)}>
+                  Delete
+                </button>
+              </div>
+            )
+          })}
+          {builtIn && (
+            <button className="option" role="radio" aria-checked={active?.kind === 'builtin'} style={{ padding: '8px 12px', minHeight: 44 }} onClick={() => { haptic.light(); chooseLabel(profile, line.item.id, 'builtin') }}>
+              <div className="stack" style={{ flex: 1, minWidth: 0, gap: 1 }}>
+                <span style={{ fontWeight: 600, fontSize: 'var(--fs-sub)' }}>{builtIn.name} {active?.kind === 'builtin' && <Icon name="check" size={13} strokeWidth={3} className="accent" />}</span>
+                <span className="caption">{builtIn.serving} · from your label photos</span>
+              </div>
+            </button>
+          )}
+          <button className="option" role="radio" aria-checked={active?.kind === 'standard'} style={{ padding: '8px 12px', minHeight: 44 }} onClick={() => { haptic.light(); chooseLabel(profile, line.item.id, 'standard') }}>
+            <div className="stack" style={{ flex: 1, minWidth: 0, gap: 1 }}>
+              <span style={{ fontWeight: 600, fontSize: 'var(--fs-sub)' }}>Standard values {active?.kind === 'standard' && <Icon name="check" size={13} strokeWidth={3} className="accent" />}</span>
+              <span className="caption">Typical numbers for {originalItem(line.item.id).name.toLowerCase()}</span>
+            </div>
+          </button>
+        </div>
+      )}
+      </>
     )
   }
 

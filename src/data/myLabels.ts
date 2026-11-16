@@ -33,10 +33,10 @@ let appliedKey = ''
  * Apply label numbers to the grocery catalog: built-in labels (if on), then labels you
  * scanned in the app (always win). Cheap to call every render.
  */
-export function applyLabels(builtIn: boolean, scanned: Record<string, Partial<GroceryItem> & { serving?: string }> = {}) {
-  const key = JSON.stringify([builtIn, scanned])
+export function applyLabels(builtIn: boolean, scanned: Record<string, Partial<GroceryItem> & { serving?: string }> = {}, off: string[] = []) {
+  const key = JSON.stringify([builtIn, scanned, off])
   if (key === appliedKey) return
-  for (const id of new Set([...Object.keys(myLabels), ...Object.keys(scanned), ...Object.keys(originals)])) {
+  for (const id of new Set([...Object.keys(myLabels), ...Object.keys(scanned), ...off, ...Object.keys(originals)])) {
     if (!groceryItems[id] && !originals[id]) continue
     originals[id] ??= { ...groceryItems[id] }
     const pick = (l?: Partial<GroceryItem> & { serving?: string }) => {
@@ -45,7 +45,7 @@ export function applyLabels(builtIn: boolean, scanned: Record<string, Partial<Gr
       const { serving, ...fields } = l as Label
       return fields
     }
-    groceryItems[id] = { ...originals[id], ...(builtIn ? pick(myLabels[id]) : {}), ...pick(scanned[id]) }
+    groceryItems[id] = off.includes(id) ? originals[id] : { ...originals[id], ...(builtIn ? pick(myLabels[id]) : {}), ...pick(scanned[id]) }
   }
   appliedKey = key
 }

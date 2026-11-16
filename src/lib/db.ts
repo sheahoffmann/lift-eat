@@ -134,6 +134,19 @@ export type ProgramOverride = {
   startWeight?: number
 }
 
+/** Every nutrition label ever scanned on this phone, per grocery item (values per base unit). */
+export type LibraryLabel = {
+  id: string
+  itemId: string
+  name: string
+  cal: number
+  protein: number
+  carbs: number
+  fat: number
+  serving: string
+  scannedAt: string
+}
+
 /** An exercise you typed in yourself (not in the built-in list). */
 export type CustomExercise = {
   id: string // custom-…
@@ -211,6 +224,7 @@ class LiftEatDB extends Dexie {
   pets!: Table<Pet, string>
   supplementLog!: Table<{ id: string; date: string; suppId: string; at: string }, string>
   customExercises!: Table<CustomExercise, string>
+  labelLibrary!: Table<LibraryLabel, string>
 
   constructor() {
     super('lift-eat')
@@ -218,6 +232,9 @@ class LiftEatDB extends Dexie {
       plans: 'id, startDate, endDate',
       foodLog: 'id, date, slot, mealId',
       myFoods: 'id, name, lastUsed, barcode',
+    })
+    this.version(8).stores({
+      labelLibrary: 'id, itemId, scannedAt',
     })
     this.version(7).stores({
       customExercises: 'id, name',
