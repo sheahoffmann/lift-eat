@@ -18,7 +18,8 @@ const safeId = (id: unknown): id is string => typeof id === 'string' && /^[\w~|:
 export default async (req: Request) => {
   if (!process.env.APP_PASSCODE) return json({ error: 'Sharing is not set up yet (missing passcode on Netlify).' }, 503)
   if (req.headers.get('x-passcode') !== process.env.APP_PASSCODE) return json({ error: 'Wrong passcode. Check Settings → Photo & link reader.' }, 401)
-  const store = getStore('shared-library')
+  // Strong consistency: a phone that just shared something sees it right away when it reads back.
+  const store = getStore({ name: 'shared-library', consistency: 'strong' })
 
   if (req.method === 'GET') {
     const out: Record<Kind, unknown[]> = { labels: [], exercises: [], workouts: [] }

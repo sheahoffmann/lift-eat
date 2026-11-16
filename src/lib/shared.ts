@@ -24,7 +24,7 @@ const writeSet = (k: string, s: Set<string>) => {
   }
 }
 
-export type SyncStatus = { at: string; ok: boolean; message: string; counts?: { labels: number; exercises: number; workouts: number } }
+export type SyncStatus = { at: string; ok: boolean; message: string; counts?: { labels: number; exercises: number; workouts: number }; sent?: number }
 export function syncStatus(): SyncStatus | null {
   try {
     return JSON.parse(localStorage.getItem(STATUS) ?? 'null')
@@ -127,6 +127,7 @@ async function doSync(profile: Profile, passcode: string) {
       ok: true,
       message: 'Synced',
       counts: { labels: data.labels.length, exercises: data.exercises.length, workouts: data.workouts.length },
+      sent: newLabels.length + newExercises.length + newWorkouts.length,
     })
   } catch (e) {
     setStatus({ at: new Date().toISOString(), ok: false, message: (e as Error).message })

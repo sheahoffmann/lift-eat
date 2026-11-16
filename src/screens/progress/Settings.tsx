@@ -1,6 +1,7 @@
 // Settings: targets, phase, schedule, equipment, rest, celebrations, data.
 import { myLabels, myLabelsOn } from '../../data/myLabels'
 import { syncShared, syncStatus } from '../../lib/shared'
+import { backfillLibrary } from '../../lib/labelLibrary'
 import { useRef, useState } from 'react'
 import { motion } from 'motion/react'
 import { macroTargets, saveProfile, settingsOf, todayISO, updateSettings, type EquipmentProfileKey, type Profile } from '../../lib/profile'
@@ -72,6 +73,7 @@ export function Settings({ profile }: { profile: Profile }) {
   const s = settingsOf(profile)
   const labelsOn = myLabelsOn(profile.program, s.myLabels)
   const [sync, setSync] = useState(syncStatus)
+  const [syncing, setSyncing] = useState(false)
   const [theme, setTheme] = useTheme()
   const [eqProfile, setEqProfile] = useState<EquipmentProfileKey>(s.equipmentProfile)
   const [msg, setMsg] = useState('')
@@ -280,14 +282,28 @@ export function Settings({ profile }: { profile: Profile }) {
             <>
               {' '}
               <span className={sync.ok ? 'accent' : undefined}>
-                {sync.ok ? `Last synced ${new Date(sync.at).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}${sync.counts ? ` · ${sync.counts.labels} labels, ${sync.counts.exercises} exercises, ${sync.counts.workouts} workouts shared` : ''}.` : `Sync: ${sync.message}`}
+                {sync.ok ? `Last synced ${new Date(sync.at).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}${sync.sent ? ` · sent ${sync.sent} new` : ''}${sync.counts ? ` · library has ${sync.counts.labels} labels, ${sync.counts.exercises} exercises, ${sync.counts.workouts} workouts` : ''}.` : `Sync: ${sync.message}`}
               </span>
             </>
           )}
         </p>
         {s.aiPasscode && (
-          <button className="link-btn" style={{ alignSelf: 'flex-start', paddingLeft: 0 }} onClick={async () => { await syncShared(profile, true); setSync(syncStatus()) }}>
-            Sync now
+          <button
+            className="btn btn--secondary btn--sm"
+            style={{ alignSelf: 'flex-start' }}
+            disabled={syncing}
+            aria-busy={syncing}
+            onClick={async () => {
+              setSyncing(true)
+              haptic.light()
+              await backfillLibrary(profile).catch(() => {})
+              await syncShared(profile, true)
+              setSync(syncStatus())
+              setSyncing(false)
+              haptic.success()
+            }}
+          >
+            {syncing ? 'Syncing…' : 'Sync now'}
           </button>
         )}
       </section>
