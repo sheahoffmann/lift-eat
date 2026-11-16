@@ -21,6 +21,7 @@ export const myLabels: Record<string, Label> = {
   'guac-cups': { name: 'Wholly guacamole mini cups', cal: 120, protein: 1, carbs: 5, fat: 10, packSize: 4, packLabel: '4-pack', serving: '1 mini cup (57 g): 120 cal, 10 g fat' },
   'greek-yogurt': { name: 'Chobani low-fat vanilla Greek yogurt', ...perServing(190, 140, 20, 9, 3), packSize: 950, packLabel: '32 oz tub', serving: '¾ cup (190 g): 140 cal, 20 g protein' },
   granola: { name: 'Kodiak honey oat granola', ...perServing(62, 260, 16, 30, 9), packSize: 310, packLabel: 'bag (~5 servings)', serving: '⅔ cup (62 g): 260 cal, 16 g protein' },
+  marinara: { name: 'Classico four cheese marinara', ...perServing(125, 50, 2, 10, 0.5), packSize: 680, packLabel: '24 oz jar', serving: '½ cup (125 g): 50 cal, 2 g protein' },
   salsa: { name: 'Herdez salsa verde', ...perServing(31, 10, 0, 2, 0), packSize: 682, packLabel: '24 oz jar', serving: '2 tbsp (31 g): 10 cal' },
 }
 

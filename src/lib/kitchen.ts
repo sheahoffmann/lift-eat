@@ -11,7 +11,7 @@ type Measure =
   | { kind: 'count'; one: string; many: string }
 
 const measures: Record<string, Measure> = {
-  'greek-yogurt': { kind: 'volume', gPerCup: 245, name: 'nonfat Greek yogurt' },
+  'greek-yogurt': { kind: 'volume', gPerCup: 245, name: 'Greek yogurt' },
   'egg-whites': { kind: 'volume', gPerCup: 243, name: 'liquid egg whites' },
   'cottage-cheese': { kind: 'volume', gPerCup: 226, name: 'low-fat cottage cheese' },
   'whole-milk': { kind: 'liquid', gPerCup: 244, name: 'whole milk' },
@@ -36,7 +36,7 @@ const measures: Record<string, Measure> = {
   'cottage-cup': { kind: 'count', one: 'cottage cheese cup', many: 'cottage cheese cups' },
   'string-cheese': { kind: 'count', one: 'string cheese', many: 'string cheeses' },
   'guac-cups': { kind: 'count', one: 'guacamole cup', many: 'guacamole cups' },
-  'turkey-meatballs': { kind: 'count', one: 'turkey meatball', many: 'turkey meatballs' },
+  'turkey-meatballs': { kind: 'count', one: 'meatball', many: 'meatballs' },
   banana: { kind: 'count', one: 'banana', many: 'bananas' },
   apple: { kind: 'count', one: 'apple', many: 'apples' },
   'english-muffin': { kind: 'count', one: 'English muffin', many: 'English muffins' },

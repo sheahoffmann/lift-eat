@@ -92,7 +92,7 @@ export const mealOptions: MealOption[] = [
     desc: 'Your own shake: a scoop of whey blended or shaken with whole milk.',
     prep: 'No cook',
     minutes: 1,
-    steps: ['1 scoop whey + 12 oz whole milk. Shake or blend.'],
+    steps: ['Shake or blend 1 scoop whey with the milk.'],
     ingredients: [
       { item: 'whey', amount: 1, note: '1 scoop' },
       { item: 'whole-milk', amount: 340, note: '12 oz' },
@@ -167,7 +167,7 @@ export const mealOptions: MealOption[] = [
     desc: 'A scoop of whey shaken with whole milk.',
     prep: 'No cook',
     minutes: 1,
-    steps: ['1 scoop whey + 12 oz whole milk. Shake or blend.'],
+    steps: ['Shake or blend 1 scoop whey with the milk.'],
     ingredients: [
       { item: 'whey', amount: 1, note: '1 scoop' },
       { item: 'whole-milk', amount: 340, note: '12 oz' },
@@ -241,8 +241,8 @@ export const mealOptions: MealOption[] = [
   {
     id: 'meatballs-potato',
     slot: 'dinner',
-    name: 'Turkey meatballs + potato',
-    desc: 'Frozen turkey meatballs in marinara, potato, green beans.',
+    name: 'Meatballs + potato',
+    desc: 'Frozen meatballs in marinara, potato, green beans.',
     prep: 'Microwave',
     minutes: 10,
     steps: [
