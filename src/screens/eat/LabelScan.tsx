@@ -11,6 +11,7 @@ import { applyLabels, myLabelsOn } from '../../data/myLabels'
 import { mealChanges, mealSnapshot, type MealChange } from '../../lib/weekReview'
 import { WeekReview } from './WeekReview'
 import { addToLibrary } from '../../lib/labelLibrary'
+import { requestSync } from '../../lib/shared'
 import { Icon } from '../../components/Icon'
 
 type Row = {
@@ -92,6 +93,7 @@ export function LabelScan({ profile, plan, preset, onDone }: { profile: Profile;
     applyLabels(myLabelsOn(profile.program, settings.myLabels), scanned, off)
     updateSettings(profile, { scannedLabels: scanned, labelOff: off })
     if (plan && before) setChanges(mealChanges(before, mealSnapshot(plan.picks, plan.portion)))
+    requestSync() // share new labels with everyone using the app
     haptic.celebrate()
     setSaved(n)
     setRows([])

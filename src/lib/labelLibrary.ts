@@ -4,6 +4,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { db, uid, type LibraryLabel } from './db'
 import { settingsOf, updateSettings, type Profile, type ScannedLabel } from './profile'
 import { myLabels, myLabelsOn } from '../data/myLabels'
+import { unshare } from './shared'
 
 const same = (a: Pick<LibraryLabel, 'name' | 'cal' | 'protein' | 'carbs' | 'fat'>, b: typeof a) =>
   a.name.trim().toLowerCase() === b.name.trim().toLowerCase() && [a.cal - b.cal, a.protein - b.protein, a.carbs - b.carbs, a.fat - b.fat].every((d) => Math.abs(d) < 1e-3)
@@ -51,6 +52,7 @@ export function chooseLabel(profile: Profile, itemId: string, choice: LibraryLab
 
 export async function deleteFromLibrary(profile: Profile, l: LibraryLabel) {
   await db.labelLibrary.delete(l.id)
+  await unshare(profile, 'labels', l.id, l.addedBy)
   // If it was the active one, fall back to the built-in label or standard values.
   const active = settingsOf(profile).scannedLabels?.[l.itemId]
   if (active && same(active, l)) chooseLabel(profile, l.itemId, 'builtin')

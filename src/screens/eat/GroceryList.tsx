@@ -93,7 +93,8 @@ export function GroceryListView({ plan, profile }: { plan: WeekPlan; profile?: P
     const hasPhoto = !!photos[line.item.id]
     const canSnap = !!profile && !line.item.customUnit
     const active = profile && canSnap ? activeLabel(line.item.id, profile) : null
-    const saved = library.filter((l) => l.itemId === line.item.id)
+    // Same product scanned twice (or by two people) shows once — newest first.
+    const saved = library.filter((l, i, all) => l.itemId === line.item.id && all.findIndex((o) => o.itemId === l.itemId && o.name.trim().toLowerCase() === l.name.trim().toLowerCase() && o.serving === l.serving) === i)
     const builtIn = builtInOn ? myLabels[line.item.id] : undefined
     const historyCount = saved.length + (builtIn ? 1 : 0)
     const open = historyFor === line.item.id
@@ -170,7 +171,7 @@ export function GroceryListView({ plan, profile }: { plan: WeekPlan; profile?: P
                 <button className="option" role="radio" aria-checked={on} style={{ flex: 1, padding: '8px 12px', minHeight: 44 }} onClick={() => { haptic.light(); chooseLabel(profile, line.item.id, l) }}>
                   <div className="stack" style={{ flex: 1, minWidth: 0, gap: 1 }}>
                     <span style={{ fontWeight: 600, fontSize: 'var(--fs-sub)' }}>{l.name} {on && <Icon name="check" size={13} strokeWidth={3} className="accent" />}</span>
-                    <span className="caption">{l.serving} · scanned {new Date(l.scannedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span>
+                    <span className="caption">{l.serving} · {l.addedBy && l.addedBy !== profile.name ? `added by ${l.addedBy}` : 'scanned'} {new Date(l.scannedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span>
                   </div>
                 </button>
                 <button className="link-btn" style={{ color: 'var(--text-3)', minHeight: 44, padding: '0 4px' }} aria-label={`Delete ${l.name} from history`} onClick={() => deleteFromLibrary(profile, l)}>

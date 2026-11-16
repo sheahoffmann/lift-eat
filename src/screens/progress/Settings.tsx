@@ -1,5 +1,6 @@
 // Settings: targets, phase, schedule, equipment, rest, celebrations, data.
 import { myLabels, myLabelsOn } from '../../data/myLabels'
+import { syncShared, syncStatus } from '../../lib/shared'
 import { useRef, useState } from 'react'
 import { motion } from 'motion/react'
 import { macroTargets, saveProfile, settingsOf, todayISO, updateSettings, type EquipmentProfileKey, type Profile } from '../../lib/profile'
@@ -70,6 +71,7 @@ function NumberRow({ label, value, onChange, step = 1, min = 0, max = 10000, suf
 export function Settings({ profile }: { profile: Profile }) {
   const s = settingsOf(profile)
   const labelsOn = myLabelsOn(profile.program, s.myLabels)
+  const [sync, setSync] = useState(syncStatus)
   const [theme, setTheme] = useTheme()
   const [eqProfile, setEqProfile] = useState<EquipmentProfileKey>(s.equipmentProfile)
   const [msg, setMsg] = useState('')
@@ -272,6 +274,22 @@ export function Settings({ profile }: { profile: Profile }) {
           {s.aiPasscode ? <span className="accent">Saved ✓ </span> : null}
           Lets you log food from a nutrition-label photo or a link. Each read costs about a cent on your Anthropic account.
         </p>
+        <p className="caption">
+          The passcode also turns on the <strong style={{ color: 'var(--text)' }}>shared library</strong>: nutrition labels, your own exercises and workout lineups are shared with everyone using this app. Your history, weights and food log stay on this phone.
+          {sync && (
+            <>
+              {' '}
+              <span className={sync.ok ? 'accent' : undefined}>
+                {sync.ok ? `Last synced ${new Date(sync.at).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}${sync.counts ? ` · ${sync.counts.labels} labels, ${sync.counts.exercises} exercises, ${sync.counts.workouts} workouts shared` : ''}.` : `Sync: ${sync.message}`}
+              </span>
+            </>
+          )}
+        </p>
+        {s.aiPasscode && (
+          <button className="link-btn" style={{ alignSelf: 'flex-start', paddingLeft: 0 }} onClick={async () => { await syncShared(profile, true); setSync(syncStatus()) }}>
+            Sync now
+          </button>
+        )}
       </section>
 
       <section className="stack gap-2">

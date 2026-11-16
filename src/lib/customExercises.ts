@@ -2,6 +2,7 @@
 // so logging, history, PRs and the muscle map work exactly like built-in ones.
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db, uid, type CustomExercise } from './db'
+import { requestSync } from './shared'
 import { setCustomExercises } from '../data/exercises'
 import type { Exercise } from '../data/exerciseTypes'
 import type { MuscleSlug } from '../anatomy/muscles'
@@ -40,5 +41,6 @@ export async function saveCustomExercise(input: Omit<CustomExercise, 'id' | 'cre
   const ex: CustomExercise = { ...input, name: input.name.trim(), id: existing?.id ?? `custom-${uid()}`, createdAt: existing?.createdAt ?? new Date().toISOString() }
   await db.customExercises.put(ex)
   setCustomExercises((await db.customExercises.toArray()).map(toExercise)) // available immediately
+  requestSync()
   return ex
 }

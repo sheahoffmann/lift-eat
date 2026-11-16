@@ -25,6 +25,7 @@ import { Icon } from '../../components/Icon'
 import { Sheet } from '../../components/Sheet'
 import { ExerciseDetail } from './ExerciseDetail'
 import { SwapSheet } from './SwapSheet'
+import { requestSync } from '../../lib/shared'
 import { SoundtrackLibrary } from '../Soundtrack'
 
 type Item = Workout['plan'][number]
@@ -87,6 +88,7 @@ export function WorkoutView({
     setFinishing(true)
     skipRest()
     const w = await finishWorkout(workout)
+    requestSync() // share the lineup with everyone using the app
     haptic.celebrate()
     onFinished(w)
   }

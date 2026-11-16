@@ -145,7 +145,12 @@ export type LibraryLabel = {
   fat: number
   serving: string
   scannedAt: string
+  /** Who added it (shared library). */
+  addedBy?: string
 }
+
+/** A workout lineup someone else shared (exercises + sets/reps, no personal weights). */
+export type SharedWorkout = { id: string; name: string; sessionKey: string; plan: PlanItem[]; addedBy: string; updatedAt: string; timesDone: number }
 
 /** An exercise you typed in yourself (not in the built-in list). */
 export type CustomExercise = {
@@ -154,6 +159,7 @@ export type CustomExercise = {
   logType: 'weighted' | 'bodyweight' | 'timed' | 'distance'
   primary: string[] // muscle slugs
   createdAt: string
+  addedBy?: string
 }
 
 export type WeighIn = { date: string; lb: number; waist?: number }
@@ -225,6 +231,7 @@ class LiftEatDB extends Dexie {
   supplementLog!: Table<{ id: string; date: string; suppId: string; at: string }, string>
   customExercises!: Table<CustomExercise, string>
   labelLibrary!: Table<LibraryLabel, string>
+  sharedWorkouts!: Table<SharedWorkout, string>
 
   constructor() {
     super('lift-eat')
@@ -232,6 +239,9 @@ class LiftEatDB extends Dexie {
       plans: 'id, startDate, endDate',
       foodLog: 'id, date, slot, mealId',
       myFoods: 'id, name, lastUsed, barcode',
+    })
+    this.version(9).stores({
+      sharedWorkouts: 'id, addedBy',
     })
     this.version(8).stores({
       labelLibrary: 'id, itemId, scannedAt',

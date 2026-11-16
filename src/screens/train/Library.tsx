@@ -2,7 +2,7 @@
 // and your own exercises), plus every session from the programs. Tap one to do it again.
 import { useMemo, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { db, type PlanItem, type SetLog, type Workout } from '../../lib/db'
+import { db, type PlanItem, type SetLog, type SharedWorkout, type Workout } from '../../lib/db'
 import type { Profile } from '../../lib/profile'
 import { todayISO } from '../../lib/profile'
 import { exercises } from '../../data/exercises'
@@ -49,7 +49,7 @@ const shortDate = (iso: string) => new Date(iso + 'T12:00:00').toLocaleDateStrin
 const target = (p: PlanItem) =>
   `${p.sets} × ${p.seconds ? `${p.seconds}s` : p.yards ? `${p.yards} yd` : p.reps[0] === p.reps[1] ? p.reps[0] : `${p.reps[0]}–${p.reps[1]}`}${p.perSide ? '/side' : ''}`
 
-type Selected = { kind: 'mine'; entry: LibraryEntry } | { kind: 'program'; programId: string; day: number }
+type Selected = { kind: 'mine'; entry: LibraryEntry } | { kind: 'shared'; entry: LibraryEntry; addedBy: string } | { kind: 'program'; programId: string; day: number }
 
 export function useLibrary() {
   const workouts = useLiveQuery(() => db.workouts.filter((w) => !!w.finishedAt && !w.cardio).toArray(), [], undefined)
@@ -58,7 +58,8 @@ export function useLibrary() {
 
 export function LibrarySheet({ profile, onStarted }: { profile: Profile; onStarted: () => void }) {
   const mine = useLibrary()
-  const [tab, setTab] = useState<'mine' | 'programs'>('mine')
+  const [tab, setTab] = useState<'mine' | 'shared' | 'programs'>('mine')
+  const shared = useLiveQuery(() => db.sharedWorkouts.orderBy('addedBy').toArray(), [], [] as SharedWorkout[])
   const [selected, setSelected] = useState<Selected | null>(null)
   const phase = phaseOf(profile)
   const thisWeek = weekStart(todayISO())
@@ -70,7 +71,8 @@ export function LibrarySheet({ profile, onStarted }: { profile: Profile; onStart
       <div className="segmented" role="tablist" aria-label="Library">
         {(
           [
-            ['mine', 'Your workouts'],
+            ['mine', 'Yours'],
+            ['shared', `Shared${shared.length ? ` · ${shared.length}` : ''}`],
             ['programs', 'Programs'],
           ] as const
         ).map(([k, label]) => (
@@ -81,7 +83,31 @@ export function LibrarySheet({ profile, onStarted }: { profile: Profile; onStart
         ))}
       </div>
 
-      {tab === 'mine' ? (
+      {tab === 'shared' ? (
+        shared.length === 0 ? (
+          <p className="sub">Workouts other people using the app finish show up here automatically. Yours are shared with them too. Sharing uses the passcode in Progress → ⚙ → Photo &amp; link reader.</p>
+        ) : (
+          <section className="card" style={{ padding: 'var(--s-1) var(--s-4)' }}>
+            {shared.map((w) => (
+              <button
+                key={w.id}
+                className="g-row"
+                onClick={() =>
+                  setSelected({ kind: 'shared', addedBy: w.addedBy, entry: { id: w.id, name: w.name, sessionKey: w.sessionKey, plan: w.plan, timesDone: w.timesDone, lastDate: w.updatedAt, firstDate: w.updatedAt, lastWorkoutId: '' } })
+                }
+              >
+                <div className="stack" style={{ flex: 1, minWidth: 0, gap: 2 }}>
+                  <span style={{ fontWeight: 650 }}>{w.name}</span>
+                  <span className="caption num">
+                    {w.plan.length} exercises · added by {w.addedBy} · done {w.timesDone}×
+                  </span>
+                </div>
+                <Icon name="chevron" size={14} className="muted" />
+              </button>
+            ))}
+          </section>
+        )
+      ) : tab === 'mine' ? (
         mine === undefined ? null : mine.length === 0 ? (
           <p className="sub">Every workout you finish is saved here automatically, including your swaps and your own exercises. Do one and it shows up.</p>
         ) : (
@@ -148,11 +174,11 @@ function LibraryDetail({ profile, selected, onBack, onStarted }: { profile: Prof
   let sessionKey: string
   let plan: PlanItem[] | null
   let sub: string
-  if (selected.kind === 'mine') {
+  if (selected.kind === 'mine' || selected.kind === 'shared') {
     name = selected.entry.name
     sessionKey = selected.entry.sessionKey
-    plan = selected.entry.plan
-    sub = `Done ${selected.entry.timesDone}× · last ${shortDate(selected.entry.lastDate)}`
+    plan = selected.entry.plan.filter((p) => !!exercises[p.ex])
+    sub = selected.kind === 'shared' ? `Added by ${selected.addedBy} · done ${selected.entry.timesDone}×` : `Done ${selected.entry.timesDone}× · last ${shortDate(selected.entry.lastDate)}`
   } else {
     const pr = programs[selected.programId as keyof typeof programs]
     const s = sessionFor(pr, selected.day, phaseOf(profile))
