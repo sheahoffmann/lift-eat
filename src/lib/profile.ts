@@ -44,6 +44,8 @@ export type Settings = {
   aiPasscode?: string
   /** Mondays of weeks marked as deload (half sets; never break a streak). */
   deloadWeeks?: string[]
+  /** Use exact label numbers for the products in data/myLabels (default: on for Athletic Strength). */
+  myLabels?: boolean
 }
 
 const allEquipment: Equipment[] = [

@@ -1,4 +1,5 @@
 // Settings: targets, phase, schedule, equipment, rest, celebrations, data.
+import { myLabels, myLabelsOn } from '../../data/myLabels'
 import { useRef, useState } from 'react'
 import { motion } from 'motion/react'
 import { macroTargets, saveProfile, settingsOf, todayISO, updateSettings, type EquipmentProfileKey, type Profile } from '../../lib/profile'
@@ -68,6 +69,7 @@ function NumberRow({ label, value, onChange, step = 1, min = 0, max = 10000, suf
 
 export function Settings({ profile }: { profile: Profile }) {
   const s = settingsOf(profile)
+  const labelsOn = myLabelsOn(profile.program, s.myLabels)
   const [theme, setTheme] = useTheme()
   const [eqProfile, setEqProfile] = useState<EquipmentProfileKey>(s.equipmentProfile)
   const [msg, setMsg] = useState('')
@@ -206,6 +208,25 @@ export function Settings({ profile }: { profile: Profile }) {
         <button className="link-btn" style={{ alignSelf: 'flex-start', paddingLeft: 0 }} onClick={askNotificationPermission}>
           Allow notifications
         </button>
+      </section>
+
+      <section className="stack gap-2">
+        <h3 className="eyebrow">My food labels</h3>
+        <div className="card" style={{ padding: 'var(--s-1) var(--s-4)' }}>
+          <button className="g-row" role="switch" aria-checked={labelsOn} onClick={() => updateSettings(profile, { myLabels: !labelsOn })}>
+            <span style={{ flex: 1 }}>Use my exact label numbers</span>
+            <span className="toggle" aria-checked={labelsOn} aria-hidden />
+          </button>
+          {Object.entries(myLabels).map(([id, l]) => (
+            <div key={id} className="g-row" style={{ minHeight: 44, opacity: labelsOn ? 1 : 0.5 }}>
+              <div className="stack" style={{ flex: 1, minWidth: 0, gap: 1 }}>
+                <span style={{ fontWeight: 600, fontSize: 'var(--fs-sub)' }}>{l.name}</span>
+                <span className="caption">{l.serving}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+        <p className="caption">Meal macros, the planner and the grocery list use these numbers on this phone only. Turn it off to go back to typical values.</p>
       </section>
 
       <section className="stack gap-2">

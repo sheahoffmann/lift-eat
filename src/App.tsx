@@ -23,6 +23,7 @@ import { setRestSound } from './lib/restTimer'
 import { setHapticsEnabled } from './lib/haptics'
 import { useCustomMealsSync } from './lib/customMeals'
 import { useCustomExercisesSync } from './lib/customExercises'
+import { applyMyLabels, myLabelsOn } from './data/myLabels'
 
 export default function App() {
   const [profile] = useProfile()
@@ -36,6 +37,8 @@ export default function App() {
     restoreActiveRun()
   }, [])
   const settings = settingsOf(profile)
+  // Exact label numbers for this phone's products (before anything computes macros).
+  applyMyLabels(myLabelsOn(profile?.program, settings.myLabels))
   const lastTier = useRef<string | null>(null)
 
   useEffect(() => {
