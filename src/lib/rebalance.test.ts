@@ -17,7 +17,6 @@ describe('balance my macros', () => {
   it('only proposes meals you can make with food on hand, and they hit the targets', () => {
     applyMyLabels(true)
     const r = rebalancePlan(plan, t, Object.keys(myLabels))
-    const base = dayVariants(plan.picks, 1)[0]
     expect(r).not.toBeNull()
     if (!r) return
     expect(r.fixes.length).toBeGreaterThan(0)
