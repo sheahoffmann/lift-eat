@@ -24,7 +24,11 @@ export type WeekPlan = {
   checked: string[] // grocery lines checked off in the store
   shoppedAt?: string // set when you tap Complete; hides the grocery card on Eat
   lockedAt: string
+  /** Portion-tuned meals for this week (picks reference their ids). */
+  tuned?: TunedMeal[]
 }
+
+export type TunedMeal = { id: string; base: string; amounts: Record<string, number> }
 
 export type FoodLogEntry = {
   id: string

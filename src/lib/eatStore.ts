@@ -1,4 +1,5 @@
 // Reads and writes for plans, the food log and My Foods.
+import { baseMealId } from '../data/meals'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db, uid, type FoodLogEntry, type MyFood, type Picks, type WeekPlan } from './db'
 import { mealsById, slotMeta, type Slot } from '../data/meals'
@@ -86,7 +87,7 @@ export function plannedMealsFor(plan: WeekPlan, date: string, log: FoodLogEntry[
   return mealsForDay(plan.picks, dayIndex).map(({ slot, id }) => {
     const meal = mealsById[id]
     const entry = log.find(
-      (e) => !usedEntries.has(e.id) && (slot === 'extra' ? e.slot === 'extra' && e.mealId === id : e.slot === slot),
+      (e) => !usedEntries.has(e.id) && (slot === 'extra' ? e.slot === 'extra' && !!e.mealId && baseMealId(e.mealId) === baseMealId(id) : e.slot === slot),
     )
     if (entry) usedEntries.add(entry.id)
     const meta = slot === 'extra' ? { time: 'Anytime', startHour: 21 } : slotMeta[slot]

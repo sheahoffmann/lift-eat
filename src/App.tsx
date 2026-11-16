@@ -24,6 +24,7 @@ import { setHapticsEnabled } from './lib/haptics'
 import { useCustomMealsSync } from './lib/customMeals'
 import { useCustomExercisesSync } from './lib/customExercises'
 import { applyLabels, myLabelsOn } from './data/myLabels'
+import './lib/tune' // registers tuned meals as plans load
 
 export default function App() {
   const [profile] = useProfile()

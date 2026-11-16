@@ -97,10 +97,10 @@ export function buildLines(meal: MealOption, portion = 1): BuildLine[] {
     const amt = scaledAmount(ing.item, ing.amount, portion)
     const m = measures[ing.item]
     const fallbackName = groceryItems[ing.item]?.name ?? ing.item
-    if (!m) return { amount: groceryItems[ing.item]?.unit === 'g' ? `${amt} g` : `${amt}`, item: fallbackName }
+    if (!m) return { amount: groceryItems[ing.item]?.unit === 'g' ? `${amt} g` : Number.isInteger(amt) ? `${amt}` : niceNumber(amt), item: fallbackName }
     switch (m.kind) {
       case 'count':
-        return { amount: String(amt), item: amt === 1 ? m.one : m.many }
+        return { amount: Number.isInteger(amt) ? String(amt) : niceNumber(amt), item: amt <= 1 ? m.one : m.many }
       case 'volume':
         return { amount: volumeText(amt / m.gPerCup), item: m.name, detail: `${amt} g` }
       case 'liquid': {

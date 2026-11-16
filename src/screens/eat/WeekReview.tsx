@@ -4,7 +4,10 @@ import type { WeekPlan } from '../../lib/db'
 import { macroTargets, type Profile } from '../../lib/profile'
 import { planDay, splitOf, verdict, type MealChange } from '../../lib/weekReview'
 import { Icon } from '../../components/Icon'
-import { RebalanceCard } from './Rebalance'
+import { useMemo, useState } from 'react'
+import { RebalanceCard, TuneCard } from './Rebalance'
+import { resetTuning, tunePlan } from '../../lib/tune'
+import { haptic } from '../../lib/haptics'
 
 export function WeekReview({ plan, profile, changes }: { plan: WeekPlan; profile: Profile; changes?: MealChange[] }) {
   const goals = macroTargets(profile)
@@ -13,6 +16,10 @@ export function WeekReview({ plan, profile, changes }: { plan: WeekPlan; profile
   const goalSplit = splitOf({ cal: goals.calories, protein: goals.protein, carbs: goals.carbs, fat: goals.fat })
   const v = verdict(day, goals)
   const sign = (n: number) => (n > 0 ? `+${n}` : `${n}`)
+  const [fineTune, setFineTune] = useState(false)
+  const hasNotes = v.lines.some((l) => l.tone === 'note')
+  const tune = useMemo(() => (fineTune ? tunePlan(plan, goals) : null), [fineTune, plan, goals])
+  const tunedCount = plan.tuned?.length ?? 0
 
   return (
     <div className="stack gap-4">
@@ -97,6 +104,30 @@ export function WeekReview({ plan, profile, changes }: { plan: WeekPlan; profile
       </section>
 
       {!v.ok && <RebalanceCard plan={plan} profile={profile} />}
+
+      {v.ok && hasNotes && !fineTune && (
+        <button className="btn btn--secondary btn--block" onClick={() => setFineTune(true)}>
+          <Icon name="wand" size={16} /> Fine-tune portions to match exactly
+        </button>
+      )}
+      {fineTune && (tune ? <TuneCard plan={plan} result={tune} onApplied={() => setFineTune(false)} /> : <p className="caption">Already as close as small portion changes can get.</p>)}
+
+      {tunedCount > 0 && (
+        <div className="card card-row" style={{ padding: 'var(--s-3) var(--s-4)' }}>
+          <span className="caption">
+            Portions tuned in {tunedCount} meal{tunedCount === 1 ? '' : 's'} this week.
+          </span>
+          <button
+            className="link-btn"
+            onClick={async () => {
+              await resetTuning(plan)
+              haptic.light()
+            }}
+          >
+            Reset to standard
+          </button>
+        </div>
+      )}
       <p className="caption">Assumes you eat each meal as written. Anything extra you log with "Ate something else" counts on the day itself.</p>
     </div>
   )

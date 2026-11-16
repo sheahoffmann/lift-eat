@@ -333,6 +333,17 @@ export function setCustomMeals(list: MealOption[]) {
   for (const m of list) mealsById[m.id] = m
 }
 
+// Portion-tuned copies of meals for a specific week's plan (id "base~t…").
+// Registered into mealsById so recipes, macros and the grocery list use them,
+// but never offered as planner options.
+// Upsert only: ids are unique per plan, so stale entries are harmless.
+export function setTunedMeals(list: MealOption[]) {
+  for (const m of list) mealsById[m.id] = m
+}
+
+/** The standard meal a tuned copy came from. */
+export const baseMealId = (id: string) => id.split('~')[0]
+
 export function optionsFor(slot: Slot | 'extra') {
   return [...mealOptions, ...customMeals].filter((m) => m.slot === slot)
 }

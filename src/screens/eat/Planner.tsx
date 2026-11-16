@@ -23,6 +23,7 @@ import { lockPlan } from '../../lib/eatStore'
 import { haptic } from '../../lib/haptics'
 import { Icon } from '../../components/Icon'
 import { GroceryListView } from './GroceryList'
+import { basePicks } from '../../lib/tune'
 import { CustomMealForm } from './CustomMealForm'
 import { Sheet } from '../../components/Sheet'
 import { useLiveQuery } from 'dexie-react-hooks'
@@ -38,7 +39,7 @@ const emptyPicks: Picks = { breakfast: '', lunch: '', snack: '', dinner: [], eve
 export function Planner({ profile, previous, onClose }: { profile: Profile; previous?: WeekPlan | null; onClose: () => void }) {
   const portion = portionFor(profile.calorieTarget)
   const targets: Targets = { calories: profile.calorieTarget, protein: profile.proteinTarget }
-  const [picks, setPicks] = useState<Picks>(previous?.picks ?? emptyPicks)
+  const [picks, setPicks] = useState<Picks>(previous?.picks ? basePicks(previous.picks) : emptyPicks)
   const [step, setStep] = useState<Step>('breakfast')
   const [dir, setDir] = useState(1)
   const [pantry, setPantry] = useState<string[]>([])
