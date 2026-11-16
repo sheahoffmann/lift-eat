@@ -178,9 +178,9 @@ export async function discardRun() {
 }
 
 /** Today's matching cardio session key, so a run counts for the planned session if there is one. */
-function sessionKeyFor(profile: Profile) {
+function sessionKeyFor(profile: Profile, day = new Date().getDay()) {
   const program = programs[profile.program]
-  const today = program.week[new Date().getDay()]
+  const today = program.week[day]
   if (today.kind === 'run' || today.kind === 'sprint' || today.kind === 'optional') return today.key
   const anyRun = program.week.find((d) => d.kind === 'run' || d.kind === 'optional')
   return anyRun?.key ?? 'run'
@@ -208,6 +208,30 @@ export async function saveRunAsWorkout(run: RunRecord, profile: Profile): Promis
     await db.workouts.add(w)
     await db.runs.put({ ...run, status: 'done', workoutId: w.id })
   })
+  return w
+}
+
+/** A run you forgot to track: log it by hand (date, distance, time). Counts like any other run. */
+export async function logManualRun(profile: Profile, input: { date: string; type: string; miles: number; seconds: number }): Promise<Workout> {
+  const day = new Date(input.date + 'T12:00:00').getDay()
+  const startedAt = input.date === todayISO() ? new Date(Date.now() - input.seconds * 1000).toISOString() : new Date(input.date + 'T12:00:00').toISOString()
+  const finishedAt = new Date(Date.parse(startedAt) + input.seconds * 1000).toISOString()
+  const miles = Math.round(input.miles * 100) / 100
+  const w: Workout = {
+    id: uid(),
+    date: input.date,
+    sessionKey: sessionKeyFor(profile, day),
+    name: miles > 0 ? `${miles.toFixed(2)} mi ${input.type.toLowerCase()}` : input.type,
+    kind: 'run',
+    phase: phaseOf(profile),
+    equipmentProfile: 'manual',
+    startedAt,
+    finishedAt,
+    durationSec: input.seconds,
+    plan: [],
+    cardio: { type: input.type, minutes: Math.max(1, Math.round(input.seconds / 60)), distanceMi: miles || undefined },
+  }
+  await db.workouts.add(w)
   return w
 }
 

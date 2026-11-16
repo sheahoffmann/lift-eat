@@ -296,3 +296,11 @@ const list: Exercise[] = [
 
 export const exercises: Record<string, Exercise> = Object.fromEntries(list.map((e) => [e.id, e]))
 export const exerciseList = list
+
+// Exercises you typed in yourself live in IndexedDB; the app registers them here on load.
+let customIds: string[] = []
+export function setCustomExercises(list: Exercise[]) {
+  for (const id of customIds) delete exercises[id]
+  customIds = list.map((e) => e.id)
+  for (const e of list) exercises[e.id] = e
+}

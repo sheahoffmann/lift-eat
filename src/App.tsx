@@ -22,6 +22,7 @@ import { celebrate, setCelebrationMode } from './lib/celebrate'
 import { setRestSound } from './lib/restTimer'
 import { setHapticsEnabled } from './lib/haptics'
 import { useCustomMealsSync } from './lib/customMeals'
+import { useCustomExercisesSync } from './lib/customExercises'
 
 export default function App() {
   const [profile] = useProfile()
@@ -30,6 +31,7 @@ export default function App() {
   const active = useActiveWorkout()
   const game = useGame(profile)
   useCustomMealsSync()
+  useCustomExercisesSync()
   useEffect(() => {
     restoreActiveRun()
   }, [])

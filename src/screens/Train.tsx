@@ -16,6 +16,7 @@ import { daysBetween } from '../lib/season'
 import { weekStart } from '../lib/game'
 import { ExerciseDetail } from './train/ExerciseDetail'
 import { formatSeconds } from '../lib/training'
+import { LibrarySheet, useLibrary } from './train/Library'
 
 export function Train({ profile }: { profile: Profile }) {
   const program = programs[profile.program]
@@ -30,6 +31,8 @@ export function Train({ profile }: { profile: Profile }) {
   const [cardioOpen, setCardioOpen] = useState(false)
   const [detail, setDetail] = useState<string | null>(null)
   const [pickOpen, setPickOpen] = useState(false)
+  const [libraryOpen, setLibraryOpen] = useState(false)
+  const library = useLibrary()
 
   // Deload reminder every 7 weeks of training after Preseason.
   const weeksIn = Math.floor(daysBetween(profile.startDate) / 7)
@@ -169,6 +172,17 @@ export function Train({ profile }: { profile: Profile }) {
 
       <RunCard profile={profile} suggestedType={session.kind === "sprint" ? "Sprints + agility" : session.kind === "lift" ? "Easy run" : "Partner run"} />
 
+      <button className="card card-row" onClick={() => setLibraryOpen(true)} style={{ textAlign: 'left', padding: 'var(--s-3) var(--s-4)', gap: 'var(--s-3)' }} aria-label="Workout library">
+        <span className="icon-btn" style={{ width: 40, height: 40, flex: 'none', background: 'var(--accent-soft)', color: 'var(--accent)' }} aria-hidden>
+          <Icon name="layers" size={20} />
+        </span>
+        <div className="stack" style={{ flex: 1, minWidth: 0, gap: 2 }}>
+          <span style={{ fontWeight: 650 }}>Workout library</span>
+          <span className="caption">{library && library.length > 0 ? `${library.length} of your workouts saved · plus every program session` : 'Every workout you do gets saved here to repeat'}</span>
+        </div>
+        <Icon name="chevron" size={18} className="muted" />
+      </button>
+
       <section className="card stack gap-2" aria-label="Equipment profile">
         <span className="eyebrow" id="eq">
           Where are you training?
@@ -269,6 +283,10 @@ export function Train({ profile }: { profile: Profile }) {
 
       <Sheet open={!!detail} onClose={() => setDetail(null)} title="Exercise">
         {detail && <ExerciseDetail exerciseId={detail} body={profile.body} target={session.exercises.find((e) => e.ex === detail)} />}
+      </Sheet>
+
+      <Sheet open={libraryOpen} onClose={() => setLibraryOpen(false)} title="Workout library">
+        {libraryOpen && <LibrarySheet profile={profile} onStarted={() => setLibraryOpen(false)} />}
       </Sheet>
 
       <Sheet open={pickOpen} onClose={() => setPickOpen(false)} title="Pick any session">

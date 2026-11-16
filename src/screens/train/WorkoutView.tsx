@@ -192,8 +192,9 @@ export function WorkoutView({
             exerciseId={workout.plan[swap].ex}
             available={settings.equipment[settings.equipmentProfile]}
             exclude={workout.plan.map((p) => p.ex)}
-            onSwap={async (ex, scope) => {
-              await swapInWorkout(workout, swap, ex, scope)
+            current={workout.plan[swap]}
+            onSwap={async (ex, scope, custom) => {
+              await swapInWorkout(workout, swap, ex, scope, custom)
               setSwap(null)
             }}
           />
@@ -294,12 +295,12 @@ function ExerciseCard({
     const prev = last.find((l) => l.setIndex === s) ?? last.at(-1)
     const typed = inputs[s] ?? { w: '', r: '' }
     const sugg = s === 0 && cue ? cue : undefined
-    const weight = typed.w !== '' ? Number(typed.w) : (sugg?.weight ?? prev?.weight ?? done.at(-1)?.weight ?? 0)
+    const weight = typed.w !== '' ? Number(typed.w) : (sugg?.weight ?? prev?.weight ?? done.at(-1)?.weight ?? item.startWeight ?? 0)
     const repsOrTime = typed.r !== '' ? Number(typed.r) : timed ? (prev?.seconds ?? item.seconds ?? 30) : distance ? (prev?.yards ?? item.yards ?? 40) : (sugg?.reps ?? prev?.reps ?? done.at(-1)?.reps ?? item.reps[1])
     if (!timed && !distance && repsOrTime <= 0) return
     if ((ex.logType === 'weighted' || distance) && weight <= 0 && !ex.id.startsWith('assisted')) {
       // Need a weight for loaded lifts on the very first time.
-      if (!prev && typed.w === '') {
+      if (!prev && typed.w === '' && !done.length && !item.startWeight) {
         document.getElementById(`w-${index}-${s}`)?.focus()
         return
       }
@@ -323,7 +324,7 @@ function ExerciseCard({
   const placeholderW = (s: number) => {
     const prev = last.find((l) => l.setIndex === s) ?? last.at(-1)
     if (s === 0 && cue && cue.weight > 0) return String(cue.weight)
-    return prev ? String(prev.weight) : bw ? '0' : '–'
+    return prev ? String(prev.weight) : done.at(-1) ? String(done.at(-1)!.weight) : item.startWeight ? String(item.startWeight) : bw ? '0' : '–'
   }
   const placeholderR = (s: number) => {
     const prev = last.find((l) => l.setIndex === s) ?? last.at(-1)

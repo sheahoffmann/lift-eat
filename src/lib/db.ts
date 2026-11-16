@@ -72,6 +72,9 @@ export type PR = {
 
 export type CardioLog = { type: string; minutes: number; distanceMi?: number; mobility?: boolean; rounds?: number }
 
+/** One exercise in a workout, as performed (after swaps). */
+export type PlanItem = { slotEx: string; ex: string; sets: number; reps: [number, number]; rest: number; perSide?: boolean; seconds?: number; yards?: number; role: string; startWeight?: number }
+
 export type Workout = {
   id: string
   date: string
@@ -84,7 +87,7 @@ export type Workout = {
   finishedAt?: string
   durationSec?: number
   /** Exercises as performed, in order (after swaps). */
-  plan: { slotEx: string; ex: string; sets: number; reps: [number, number]; rest: number; perSide?: boolean; seconds?: number; yards?: number; role: string }[]
+  plan: PlanItem[]
   notes?: Record<string, string>
   cardio?: CardioLog
   volume?: number // lb, includes estimated body weight moved
@@ -119,6 +122,21 @@ export type ExerciseSettings = {
 export type ProgramOverride = {
   id: string // `${sessionKey}:${slotEx}`
   replacement: string
+  /** Set when the replacement is your own exercise with its own prescription. */
+  sets?: number
+  reps?: [number, number]
+  seconds?: number
+  yards?: number
+  startWeight?: number
+}
+
+/** An exercise you typed in yourself (not in the built-in list). */
+export type CustomExercise = {
+  id: string // custom-…
+  name: string
+  logType: 'weighted' | 'bodyweight' | 'timed' | 'distance'
+  primary: string[] // muscle slugs
+  createdAt: string
 }
 
 export type WeighIn = { date: string; lb: number; waist?: number }
@@ -188,6 +206,7 @@ class LiftEatDB extends Dexie {
   runs!: Table<RunRecord, string>
   pets!: Table<Pet, string>
   supplementLog!: Table<{ id: string; date: string; suppId: string; at: string }, string>
+  customExercises!: Table<CustomExercise, string>
 
   constructor() {
     super('lift-eat')
@@ -195,6 +214,9 @@ class LiftEatDB extends Dexie {
       plans: 'id, startDate, endDate',
       foodLog: 'id, date, slot, mealId',
       myFoods: 'id, name, lastUsed, barcode',
+    })
+    this.version(7).stores({
+      customExercises: 'id, name',
     })
     this.version(6).stores({
       supplementLog: 'id, date, suppId',

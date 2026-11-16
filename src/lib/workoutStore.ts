@@ -1,9 +1,9 @@
 // Workout lifecycle: start → log sets (live PR detection) → finish.
 // In-progress workouts live in IndexedDB, so closing the app never loses a session.
 import { useLiveQuery } from 'dexie-react-hooks'
-import { db, uid, type CardioLog, type PR, type SetLog, type Workout } from './db'
+import { db, uid, type CardioLog, type PlanItem, type PR, type ProgramOverride, type SetLog, type Workout } from './db'
 import { exercises } from '../data/exercises'
-import { programs, sessionFor, type Phase, type Program } from '../data/programs'
+import { programs, sessionFor, type Phase, type Program, type SessionSummary } from '../data/programs'
 import { settingsOf, todayISO, type Profile } from './profile'
 import { autoSubstitute } from './swaps'
 import { detectPR, setVolume } from './training'
@@ -19,34 +19,53 @@ export function phaseOf(profile: Profile): Phase {
   return currentSeason(profile.startDate).key as Phase
 }
 
+/** A session's prescriptions → a workout plan: program overrides (incl. your own exercises) → equipment profile. */
+export function planFromSession(s: SessionSummary, profile: Profile, overrides: ProgramOverride[]): PlanItem[] {
+  const settings = settingsOf(profile)
+  const available = settings.equipment[settings.equipmentProfile]
+  const byId = new Map(overrides.map((o) => [o.id, o]))
+  return s.exercises.map((e) => {
+    const o = byId.get(`${s.key}:${e.ex}`)
+    const programmed = o?.replacement ?? e.ex
+    const ex = autoSubstitute(programmed, available, e.home)
+    const restKey = e.role as keyof typeof settings.rest
+    return {
+      slotEx: e.ex,
+      ex,
+      sets: o?.sets ?? e.sets,
+      reps: o?.reps ?? e.reps,
+      rest: settings.rest[restKey] ?? e.rest,
+      perSide: o?.sets ? undefined : e.perSide,
+      seconds: o?.seconds ?? (o?.sets ? undefined : e.seconds),
+      yards: o?.yards ?? (o?.sets ? undefined : e.yards),
+      role: e.role,
+      startWeight: o?.startWeight,
+    }
+  })
+}
+
 /** Build the exercise plan for a session: phase scaling → program overrides → equipment profile. */
 export async function resolvePlan(profile: Profile, program: Program, day: number) {
   const phase = phaseOf(profile)
   const s = sessionFor(program, day, phase)
-  const settings = settingsOf(profile)
-  const available = settings.equipment[settings.equipmentProfile]
-  const overrides = await db.overrides.toArray()
-  const byId = new Map(overrides.map((o) => [o.id, o.replacement]))
-  return {
-    session: s,
-    phase,
-    plan: s.exercises.map((e) => {
-      const programmed = byId.get(`${s.key}:${e.ex}`) ?? e.ex
-      const ex = autoSubstitute(programmed, available, e.home)
-      const restKey = e.role as keyof typeof settings.rest
-      return {
-        slotEx: e.ex,
-        ex,
-        sets: e.sets,
-        reps: e.reps,
-        rest: settings.rest[restKey] ?? e.rest,
-        perSide: e.perSide,
-        seconds: e.seconds,
-        yards: e.yards,
-        role: e.role,
-      }
-    }),
+  return { session: s, phase, plan: planFromSession(s, profile, await db.overrides.toArray()) }
+}
+
+/** Start any workout from a ready-made plan (library, past workouts). */
+export async function startWorkoutFrom(profile: Profile, from: { sessionKey: string; name: string; plan: PlanItem[] }) {
+  const w: Workout = {
+    id: uid(),
+    date: todayISO(),
+    sessionKey: from.sessionKey,
+    name: from.name,
+    kind: 'lift',
+    phase: phaseOf(profile),
+    equipmentProfile: settingsOf(profile).equipmentProfile,
+    startedAt: new Date().toISOString(),
+    plan: from.plan.map((p) => ({ ...p })),
   }
+  await db.workouts.add(w)
+  return w
 }
 
 export async function startWorkout(profile: Profile, day: number) {
@@ -148,10 +167,19 @@ export async function setCount(w: Workout, index: number, delta: number) {
   await db.workouts.update(w.id, { plan })
 }
 
-export async function swapInWorkout(w: Workout, index: number, newEx: string, scope: 'today' | 'program') {
-  const plan = w.plan.map((p, i) => (i === index ? { ...p, ex: newEx } : p))
+/** Your own prescription for a typed-in exercise. */
+export type CustomPrescription = { sets: number; reps: [number, number]; seconds?: number; yards?: number; startWeight?: number }
+
+export async function swapInWorkout(w: Workout, index: number, newEx: string, scope: 'today' | 'program', custom?: CustomPrescription) {
+  const plan = w.plan.map((p, i) =>
+    i !== index
+      ? p
+      : custom
+        ? { ...p, ex: newEx, sets: custom.sets, reps: custom.reps, seconds: custom.seconds, yards: custom.yards, startWeight: custom.startWeight, perSide: undefined }
+        : { ...p, ex: newEx, startWeight: undefined },
+  )
   await db.workouts.update(w.id, { plan })
-  if (scope === 'program') await db.overrides.put({ id: `${w.sessionKey}:${w.plan[index].slotEx}`, replacement: newEx })
+  if (scope === 'program') await db.overrides.put({ id: `${w.sessionKey}:${w.plan[index].slotEx}`, replacement: newEx, ...(custom ?? {}) })
 }
 
 /** Equipment profile switched mid-workout: re-substitute anything not doable, keep completed exercises. */
