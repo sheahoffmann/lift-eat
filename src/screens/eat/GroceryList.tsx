@@ -1,5 +1,8 @@
 // Checkable grocery list, grouped by store section, with a mid-week top-up and share.
+import { useRef, useState } from 'react'
 import type { WeekPlan } from '../../lib/db'
+import type { Profile } from '../../lib/profile'
+import { LabelScan } from './LabelScan'
 import { sectionOrder } from '../../data/groceryItems'
 import { buildGroceryList, listAsText, needText, packText, type GroceryLine } from '../../lib/grocery'
 import { addDays, markShopped, toggleChecked } from '../../lib/eatStore'
@@ -50,7 +53,14 @@ export function GroceryCard({ plan, onOpen }: { plan: WeekPlan; onOpen: () => vo
   )
 }
 
-export function GroceryListView({ plan }: { plan: WeekPlan }) {
+/** Grocery list. With a profile, each item gets a camera button to snap its nutrition label. */
+export function GroceryListView({ plan, profile }: { plan: WeekPlan; profile?: Profile }) {
+  const [photos, setPhotos] = useState<Record<string, File>>({})
+  const [reading, setReading] = useState(false)
+  const fileRef = useRef<HTMLInputElement>(null)
+  const pendingItem = useRef<string | null>(null)
+  const photoCount = Object.keys(photos).length
+
   const list = buildGroceryList(plan.picks, plan.portion, plan.pantryHave)
   const topupLabel = weekday(addDays(plan.startDate, list.topupDay))
   const all = [...Object.values(list.shop).flat(), ...list.topup]
@@ -74,36 +84,88 @@ export function GroceryListView({ plan }: { plan: WeekPlan }) {
   const Row = ({ line }: { line: GroceryLine }) => {
     const checked = plan.checked.includes(line.key)
     const perishable = line.item.shelfDays < 7
+    const hasPhoto = !!photos[line.item.id]
+    const canSnap = !!profile && !line.item.customUnit
     return (
-      <button
-        className={`g-row ${checked ? 'g-row--done' : ''}`}
-        role="checkbox"
-        aria-checked={checked}
-        onClick={() => {
-          haptic.light()
-          toggleChecked(plan, line.key)
+      <div className={`g-row ${checked ? 'g-row--done' : ''}`}>
+        <button
+          className="row"
+          style={{ flex: 1, minWidth: 0, gap: 'var(--s-3)', textAlign: 'left', minHeight: 44 }}
+          role="checkbox"
+          aria-checked={checked}
+          onClick={() => {
+            haptic.light()
+            toggleChecked(plan, line.key)
+          }}
+        >
+          <span className="g-box" aria-hidden>
+            {checked && <Icon name="check" size={14} strokeWidth={3} />}
+          </span>
+          <div className="stack" style={{ flex: 1, minWidth: 0, gap: 2 }}>
+            <span className="g-row__name" style={{ fontWeight: 600 }}>
+              {line.item.name}
+            </span>
+            <span className="caption">
+              {packText(line)}
+              {needText(line) && ` · ${needText(line)}`}
+              {hasPhoto && <span className="accent"> · label added</span>}
+            </span>
+          </div>
+          {perishable && <Icon name="leaf" size={16} className="accent" label="Perishable" />}
+          {line.item.frozen && <Icon name="snow" size={16} className="muted" label="Frozen" />}
+        </button>
+        {canSnap && (
+          <button
+            className="icon-btn"
+            style={{ flex: 'none', width: 40, height: 40, background: hasPhoto ? 'var(--accent-fill)' : undefined, color: hasPhoto ? '#fff' : undefined }}
+            aria-label={hasPhoto ? `Retake ${line.item.name} label photo` : `Add ${line.item.name} label photo`}
+            onClick={() => {
+              pendingItem.current = line.item.id
+              fileRef.current?.click()
+            }}
+          >
+            <Icon name={hasPhoto ? 'check' : 'camera'} size={18} strokeWidth={hasPhoto ? 3 : undefined} />
+          </button>
+        )}
+      </div>
+    )
+  }
+
+  if (reading && profile) {
+    return (
+      <LabelScan
+        profile={profile}
+        plan={plan}
+        preset={Object.entries(photos).map(([itemId, file]) => ({ itemId, file }))}
+        onDone={() => {
+          setReading(false)
+          setPhotos({})
         }}
-      >
-        <span className="g-box" aria-hidden>
-          {checked && <Icon name="check" size={14} strokeWidth={3} />}
-        </span>
-        <div className="stack" style={{ flex: 1, minWidth: 0, gap: 2 }}>
-          <span className="g-row__name" style={{ fontWeight: 600 }}>
-            {line.item.name}
-          </span>
-          <span className="caption">
-            {packText(line)}
-            {needText(line) && ` · ${needText(line)}`}
-          </span>
-        </div>
-        {perishable && <Icon name="leaf" size={16} className="accent" label="Perishable" />}
-        {line.item.frozen && <Icon name="snow" size={16} className="muted" label="Frozen" />}
-      </button>
+      />
     )
   }
 
   return (
     <div className="stack gap-4">
+      {profile && (
+        <input
+          ref={fileRef}
+          type="file"
+          accept="image/*"
+          hidden
+          onChange={(e) => {
+            const f = e.target.files?.[0]
+            const id = pendingItem.current
+            e.target.value = ''
+            if (f && id) setPhotos((p) => ({ ...p, [id]: f }))
+          }}
+        />
+      )}
+      {profile && (
+        <p className="caption">
+          <Icon name="camera" size={13} /> Back from the store? Tap the camera next to each item to snap its nutrition label, then read them all at once.
+        </p>
+      )}
       <div className="card-row">
         <span className="caption num">
           {done} of {all.length} in the cart
@@ -139,6 +201,12 @@ export function GroceryListView({ plan }: { plan: WeekPlan }) {
             <Row key={l.key} line={l} />
           ))}
         </section>
+      )}
+
+      {photoCount > 0 && (
+        <button className="btn btn--primary btn--block" style={{ position: 'sticky', bottom: 'calc(env(safe-area-inset-bottom) + 12px)', zIndex: 2 }} onClick={() => setReading(true)}>
+          <Icon name="check" size={18} strokeWidth={2.6} /> Read {photoCount} label{photoCount === 1 ? '' : 's'}
+        </button>
       )}
 
       {(list.restaurantMeals.length > 0 || list.skipped.length > 0) && (

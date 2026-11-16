@@ -1,12 +1,15 @@
 // "Scan grocery labels": pick several label photos at once; each is read, matched to
 // the planner ingredient it replaces, and saved as this phone's exact numbers.
-import { useRef, useState } from 'react'
-import { db, uid } from '../../lib/db'
+import { useEffect, useRef, useState } from 'react'
+import { db, uid, type WeekPlan } from '../../lib/db'
 import { settingsOf, updateSettings, type Profile, type ScannedLabel } from '../../lib/profile'
 import { photoToBase64, readNutrition, type AINutrition } from '../../lib/aiNutrition'
 import { groceryItems } from '../../data/groceryItems'
 import { guessItem, mealIngredients, toCatalog } from '../../lib/labelScan'
 import { haptic } from '../../lib/haptics'
+import { applyLabels, myLabelsOn } from '../../data/myLabels'
+import { mealChanges, mealSnapshot, type MealChange } from '../../lib/weekReview'
+import { WeekReview } from './WeekReview'
 import { Icon } from '../../components/Icon'
 
 type Row = {
@@ -20,15 +23,16 @@ type Row = {
   grams: string
 }
 
-export function LabelScan({ profile, onDone }: { profile: Profile; onDone: () => void }) {
+export function LabelScan({ profile, plan, preset, onDone }: { profile: Profile; plan: WeekPlan | null; preset?: { file: File; itemId: string }[]; onDone: () => void }) {
   const settings = settingsOf(profile)
   const fileRef = useRef<HTMLInputElement>(null)
   const [rows, setRows] = useState<Row[]>([])
   const [saved, setSaved] = useState<number | null>(null)
+  const [changes, setChanges] = useState<MealChange[] | null>(null)
   const ingredients = mealIngredients()
   const patch = (key: string, p: Partial<Row>) => setRows((rs) => rs.map((r) => (r.key === key ? { ...r, ...p } : r)))
 
-  async function readAll(files: File[]) {
+  async function readAll(files: File[], matches: (string | undefined)[] = []) {
     setSaved(null)
     const fresh: Row[] = files.map((f) => ({ key: uid(), file: f.name, status: 'reading', match: 'skip', grams: '' }))
     setRows((rs) => [...rs, ...fresh])
@@ -40,7 +44,7 @@ export function LabelScan({ profile, onDone }: { profile: Profile; onDone: () =>
         const row = fresh[i]
         try {
           const res = await readNutrition({ image: await photoToBase64(files[i]) }, settings.aiPasscode ?? '')
-          const guess = guessItem(res.name)
+          const guess = matches[i] ?? guessItem(res.name)
           patch(row.key, { status: 'done', result: res, match: guess ?? 'myfood', grams: res.servingGrams ? String(res.servingGrams) : '' })
         } catch (e) {
           patch(row.key, { status: 'error', error: (e as Error).message })
@@ -49,6 +53,15 @@ export function LabelScan({ profile, onDone }: { profile: Profile; onDone: () =>
     }
     await Promise.all([worker(), worker()])
   }
+
+  // Photos taken from the grocery list already know which item they are.
+  const started = useRef(false)
+  useEffect(() => {
+    if (!preset?.length || started.current || !settings.aiPasscode) return
+    started.current = true
+    readAll(preset.map((p) => p.file), preset.map((p) => p.itemId))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const ready = rows.filter((r) => r.status === 'done' && r.match !== 'skip')
   const needsGrams = (r: Row) => r.match !== 'myfood' && r.match !== 'skip' && groceryItems[r.match]?.unit === 'g' && !(Number(r.grams) > 0)
@@ -71,7 +84,11 @@ export function LabelScan({ profile, onDone }: { profile: Profile; onDone: () =>
         n++
       }
     }
+    const before = plan ? mealSnapshot(plan.picks, plan.portion) : null
+    // Apply right away so the review below shows the new numbers.
+    applyLabels(myLabelsOn(profile.program, settings.myLabels), scanned)
     updateSettings(profile, { scannedLabels: scanned })
+    if (plan && before) setChanges(mealChanges(before, mealSnapshot(plan.picks, plan.portion)))
     haptic.celebrate()
     setSaved(n)
     setRows([])
@@ -100,11 +117,22 @@ export function LabelScan({ profile, onDone }: { profile: Profile; onDone: () =>
           if (files.length) readAll(files)
         }}
       />
+      {saved === null && (
       <button className="btn btn--primary btn--block" onClick={() => fileRef.current?.click()} disabled={reading}>
         <Icon name="camera" size={18} /> {rows.length ? 'Add more photos' : 'Choose label photos'}
       </button>
+      )}
 
-      {saved !== null && (
+      {saved !== null && plan && changes && (
+        <>
+          <span className="title3">Saved {saved} label{saved === 1 ? '' : 's'} ✓</span>
+          <WeekReview plan={plan} profile={profile} changes={changes} />
+          <button className="btn btn--secondary btn--block" onClick={onDone}>
+            Done
+          </button>
+        </>
+      )}
+      {saved !== null && !(plan && changes) && (
         <div className="card card-row" style={{ padding: 'var(--s-3) var(--s-4)' }}>
           <span style={{ fontWeight: 650 }}>
             Saved {saved} label{saved === 1 ? '' : 's'} ✓
