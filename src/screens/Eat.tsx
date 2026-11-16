@@ -27,6 +27,7 @@ import { AteSomethingElse } from './eat/AteSomethingElse'
 import { MealBuild } from "../components/MealBuild"
 import { SupplementsCard } from "./eat/Supplements"
 import { RebalanceCard } from "./eat/Rebalance"
+import { LabelScan } from "./eat/LabelScan"
 
 export function Eat({ profile }: { profile: Profile }) {
   const date = todayISO()
@@ -35,6 +36,7 @@ export function Eat({ profile }: { profile: Profile }) {
   const log = useDayLog(date)
   const [planning, setPlanning] = useState(false)
   const [groceries, setGroceries] = useState(false)
+  const [scanning, setScanning] = useState(false)
   const [other, setOther] = useState<null | { slot: Slot | 'extra' | 'other'; replacesMealId?: string; replacing?: string }>(null)
 
   const loading = plan === undefined || log === undefined
@@ -128,6 +130,9 @@ export function Eat({ profile }: { profile: Profile }) {
           <button className="btn btn--secondary btn--block" onClick={() => setOther({ slot: 'other' })}>
             <Icon name="plus" size={18} /> Log other food
           </button>
+          <button className="btn btn--secondary btn--block" onClick={() => setScanning(true)}>
+            <Icon name="camera" size={18} /> Scan grocery labels
+          </button>
           <button className="link-btn" style={{ alignSelf: 'center' }} onClick={() => setPlanning(true)}>
             Replan this week
           </button>
@@ -140,6 +145,13 @@ export function Eat({ profile }: { profile: Profile }) {
 
       <Sheet open={groceries} onClose={() => setGroceries(false)} title="Grocery list">
         {plan && <GroceryListView plan={plan} />}
+        <button className="btn btn--secondary btn--block" style={{ marginTop: 'var(--s-4)' }} onClick={() => { setGroceries(false); setScanning(true) }}>
+          <Icon name="camera" size={18} /> Got everything? Scan the labels
+        </button>
+      </Sheet>
+
+      <Sheet open={scanning} onClose={() => setScanning(false)} title="Scan grocery labels">
+        {scanning && <LabelScan profile={profile} onDone={() => setScanning(false)} />}
       </Sheet>
 
       <Sheet open={!!other} onClose={() => setOther(null)} title="Ate something else">

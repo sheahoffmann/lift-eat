@@ -24,22 +24,36 @@ export const myLabels: Record<string, Label> = {
   salsa: { name: 'Herdez salsa verde', ...perServing(31, 10, 0, 2, 0), packSize: 682, packLabel: '24 oz jar', serving: '2 tbsp (31 g): 10 cal' },
 }
 
-// Originals, so the switch can turn the label numbers back off.
-const originals: Record<string, GroceryItem> = Object.fromEntries(Object.keys(myLabels).filter((id) => groceryItems[id]).map((id) => [id, { ...groceryItems[id] }]))
-let applied = false
+// Originals, so labels can be turned back off.
+const originals: Record<string, GroceryItem> = {}
+let appliedKey = ''
 
-/** Swap the grocery catalog to (or back from) the label numbers. Cheap to call every render. */
-export function applyMyLabels(on: boolean) {
-  if (on === applied) return
-  for (const [id, label] of Object.entries(myLabels)) {
-    const base = originals[id]
-    if (!base) continue
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { serving, ...fields } = label
-    groceryItems[id] = on ? { ...base, ...fields } : base
+/**
+ * Apply label numbers to the grocery catalog: built-in labels (if on), then labels you
+ * scanned in the app (always win). Cheap to call every render.
+ */
+export function applyLabels(builtIn: boolean, scanned: Record<string, Partial<GroceryItem> & { serving?: string }> = {}) {
+  const key = JSON.stringify([builtIn, scanned])
+  if (key === appliedKey) return
+  for (const id of new Set([...Object.keys(myLabels), ...Object.keys(scanned), ...Object.keys(originals)])) {
+    if (!groceryItems[id] && !originals[id]) continue
+    originals[id] ??= { ...groceryItems[id] }
+    const pick = (l?: Partial<GroceryItem> & { serving?: string }) => {
+      if (!l) return {}
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { serving, ...fields } = l as Label
+      return fields
+    }
+    groceryItems[id] = { ...originals[id], ...(builtIn ? pick(myLabels[id]) : {}), ...pick(scanned[id]) }
   }
-  applied = on
+  appliedKey = key
 }
+
+/** Back-compat helper used by tests. */
+export const applyMyLabels = (on: boolean) => applyLabels(on)
 
 /** On by default for the Athletic Strength profile; anyone can switch it in Settings. */
 export const myLabelsOn = (program: string | undefined, setting: boolean | undefined) => setting ?? program === 'athletic'
+
+/** The catalog value before any label numbers (for "what changed"). */
+export const originalItem = (id: string) => originals[id] ?? groceryItems[id]

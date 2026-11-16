@@ -46,7 +46,11 @@ export type Settings = {
   deloadWeeks?: string[]
   /** Use exact label numbers for the products in data/myLabels (default: on for Athletic Strength). */
   myLabels?: boolean
+  /** Labels you scanned in the app: grocery item id → nutrition per base unit (this phone only). */
+  scannedLabels?: Record<string, ScannedLabel>
 }
+
+export type ScannedLabel = { name: string; cal: number; protein: number; carbs: number; fat: number; serving: string; scannedAt: string }
 
 const allEquipment: Equipment[] = [
   'barbell', 'trap-bar', 'dumbbells', 'kettlebell', 'cable', 'machine', 'smith', 'pull-up-bar', 'bench', 'box', 'med-ball', 'landmine', 'bands', 'bodyweight',

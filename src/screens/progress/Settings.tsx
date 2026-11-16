@@ -226,6 +226,34 @@ export function Settings({ profile }: { profile: Profile }) {
             </div>
           ))}
         </div>
+        {Object.keys(s.scannedLabels ?? {}).length > 0 && (
+          <>
+            <span className="caption" style={{ fontWeight: 600, marginTop: 'var(--s-2)' }}>
+              Labels you scanned (always used)
+            </span>
+            <div className="card" style={{ padding: 'var(--s-1) var(--s-4)' }}>
+              {Object.entries(s.scannedLabels ?? {}).map(([id, l]) => (
+                <div key={id} className="g-row" style={{ minHeight: 44 }}>
+                  <div className="stack" style={{ flex: 1, minWidth: 0, gap: 1 }}>
+                    <span style={{ fontWeight: 600, fontSize: 'var(--fs-sub)' }}>{l.name}</span>
+                    <span className="caption">{l.serving}</span>
+                  </div>
+                  <button
+                    className="link-btn"
+                    style={{ color: 'var(--text-3)' }}
+                    onClick={() => {
+                      const next = { ...(s.scannedLabels ?? {}) }
+                      delete next[id]
+                      updateSettings(profile, { scannedLabels: next })
+                    }}
+                  >
+                    Remove
+                  </button>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
         <p className="caption">Meal macros, the planner and the grocery list use these numbers on this phone only. Turn it off to go back to typical values.</p>
       </section>
 

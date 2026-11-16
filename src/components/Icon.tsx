@@ -2,6 +2,12 @@
 // Decorative by default (aria-hidden); pass `label` when the icon carries meaning alone.
 
 const paths: Record<string, React.ReactNode> = {
+  camera: (
+    <>
+      <path d="M4 8.5A1.5 1.5 0 0 1 5.5 7h2.3l1.4-2h5.6l1.4 2h2.3A1.5 1.5 0 0 1 20 8.5v9a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 17.5z" />
+      <circle cx="12" cy="13" r="3.5" />
+    </>
+  ),
   today: (
     <>
       <circle cx="12" cy="12" r="8.5" />
