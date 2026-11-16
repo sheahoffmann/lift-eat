@@ -58,7 +58,16 @@ export async function deleteFromLibrary(profile: Profile, l: LibraryLabel) {
   if (active && same(active, l)) chooseLabel(profile, l.itemId, 'builtin')
 }
 
-/** One-time: labels scanned before the library existed go into it. */
+/** Labels scanned before the library existed go into it, plus this phone's built-in
+ *  label numbers (entered from label photos), so they sync to everyone like any scan. */
 export async function backfillLibrary(profile: Profile) {
   for (const [itemId, l] of Object.entries(settingsOf(profile).scannedLabels ?? {})) await addToLibrary(itemId, l)
+  if (myLabelsOn(profile.program, settingsOf(profile).myLabels)) {
+    for (const [itemId, l] of Object.entries(myLabels)) {
+      if (l.name === undefined || l.cal === undefined || l.protein === undefined || l.carbs === undefined || l.fat === undefined) continue
+      const id = `builtin-${itemId}` // same id on every phone, so it never duplicates
+      if (await db.labelLibrary.get(id)) continue
+      await db.labelLibrary.put({ id, itemId, name: l.name, cal: l.cal, protein: l.protein, carbs: l.carbs, fat: l.fat, serving: l.serving, scannedAt: '2026-11-16T12:00:00.000Z' })
+    }
+  }
 }

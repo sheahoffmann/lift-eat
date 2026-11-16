@@ -43,15 +43,16 @@ export default function App() {
   // Shared library: sync on open and whenever the app comes back to the foreground.
   useEffect(() => {
     if (!profile) return
-    const run = () => document.visibilityState === 'visible' && syncShared(profile)
-    run()
+    const run = () => {
+      if (document.visibilityState === 'visible') syncShared(profile)
+    }
+    // Fill the label library first (scans + built-in labels), then share.
+    backfillLibrary(profile)
+      .catch(() => {})
+      .then(run)
     document.addEventListener('visibilitychange', run)
     return () => document.removeEventListener('visibilitychange', run)
   }, [profile])
-  useEffect(() => {
-    if (profile) backfillLibrary(profile).catch(() => {})
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [profile?.createdAt])
   const settings = settingsOf(profile)
   // Exact label numbers for this phone's products (before anything computes macros).
   applyLabels(myLabelsOn(profile?.program, settings.myLabels), settings.scannedLabels, settings.labelOff)

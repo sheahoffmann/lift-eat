@@ -95,7 +95,8 @@ export function GroceryListView({ plan, profile }: { plan: WeekPlan; profile?: P
     const active = profile && canSnap ? activeLabel(line.item.id, profile) : null
     // Same product scanned twice (or by two people) shows once — newest first.
     const saved = library.filter((l, i, all) => l.itemId === line.item.id && all.findIndex((o) => o.itemId === l.itemId && o.name.trim().toLowerCase() === l.name.trim().toLowerCase() && o.serving === l.serving) === i)
-    const builtIn = builtInOn ? myLabels[line.item.id] : undefined
+    // The built-in label usually lives in the library too; only show it separately if not.
+    const builtIn = builtInOn && !saved.some((l) => l.name === myLabels[line.item.id]?.name) ? myLabels[line.item.id] : undefined
     const historyCount = saved.length + (builtIn ? 1 : 0)
     const open = historyFor === line.item.id
     return (
@@ -165,7 +166,7 @@ export function GroceryListView({ plan, profile }: { plan: WeekPlan; profile?: P
       {open && profile && (
         <div className="stack" style={{ gap: 4, padding: '0 0 var(--s-3) 36px' }} role="radiogroup" aria-label={`${line.item.name} labels`}>
           {saved.map((l) => {
-            const on = active?.kind === 'scanned' && active.name === l.name && active.serving === l.serving
+            const on = (active?.kind === 'scanned' || active?.kind === 'builtin') && active.name === l.name && active.serving === l.serving
             return (
               <div key={l.id} className="row" style={{ gap: 8, alignItems: 'center' }}>
                 <button className="option" role="radio" aria-checked={on} style={{ flex: 1, padding: '8px 12px', minHeight: 44 }} onClick={() => { haptic.light(); chooseLabel(profile, line.item.id, l) }}>

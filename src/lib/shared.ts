@@ -50,8 +50,10 @@ export function lineupId(exIds: string[]) {
 async function call(passcode: string, method: 'GET' | 'POST' | 'DELETE', body?: unknown) {
   const r = await fetch('/api/shared', { method, headers: { 'content-type': 'application/json', 'x-passcode': passcode }, body: body ? JSON.stringify(body) : undefined })
   if (r.status === 404) throw new Error('Sharing works on the live site only.')
-  const data = await r.json().catch(() => ({}))
-  if (!r.ok) throw new Error(data.error ?? `Sync failed (${r.status}).`)
+  const data = await r.json().catch(() => null)
+  if (!r.ok) throw new Error(data?.error ?? `Sync failed (${r.status}).`)
+  // Only trust a real reply from the shared library (never mark things shared on a guess).
+  if (!data || (method === 'POST' && typeof data.saved !== 'number') || (method === 'GET' && !Array.isArray(data.labels))) throw new Error('Unexpected reply from the shared library. Try Sync now again.')
   return data
 }
 
