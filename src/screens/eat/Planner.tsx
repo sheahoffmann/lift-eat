@@ -512,7 +512,7 @@ function Review({
   )
 }
 
-function FixCard({ fix, onApply }: { fix: ReturnType<typeof suggestFixes>[number]; onApply: () => void }) {
+export function FixCard({ fix, onApply }: { fix: ReturnType<typeof suggestFixes>[number]; onApply: () => void }) {
   const d = fix.delta
   const v = fix.variants.map(round)
   const sign = (n: number) => (n >= 0 ? `+${Math.round(n)}` : `${Math.round(n)}`)

@@ -26,6 +26,7 @@ import { GroceryCard, GroceryListView } from './eat/GroceryList'
 import { AteSomethingElse } from './eat/AteSomethingElse'
 import { MealBuild } from "../components/MealBuild"
 import { SupplementsCard } from "./eat/Supplements"
+import { RebalanceCard } from "./eat/Rebalance"
 
 export function Eat({ profile }: { profile: Profile }) {
   const date = todayISO()
@@ -81,6 +82,7 @@ export function Eat({ profile }: { profile: Profile }) {
         </section>
       ) : (
         <>
+          <RebalanceCard plan={plan} profile={profile} />
           {!plan.shoppedAt && <GroceryCard plan={plan} onOpen={() => setGroceries(true)} />}
           <ol className="stack gap-3" style={{ listStyle: 'none', margin: 0, padding: 0 }}>
             {meals.map((m) => (

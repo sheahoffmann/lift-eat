@@ -140,20 +140,20 @@ function applyChange(p: Picks, c: Change): Picks {
   }
 }
 
-function singleChanges(p: Picks): Change[] {
+function singleChanges(p: Picks, allowed: (id: string) => boolean = () => true): Change[] {
   const out: Change[] = []
   for (const slot of ['breakfast', 'lunch', 'snack'] as const) {
-    for (const o of optionsFor(slot)) if (o.id !== p[slot]) out.push({ kind: 'swap', slot, from: p[slot], to: o.id })
+    for (const o of optionsFor(slot)) if (o.id !== p[slot] && allowed(o.id)) out.push({ kind: 'swap', slot, from: p[slot], to: o.id })
   }
   p.dinner.forEach((d, index) => {
     for (const o of optionsFor('dinner'))
-      if (!p.dinner.includes(o.id)) out.push({ kind: 'swapDinner', index, from: d, to: o.id })
+      if (!p.dinner.includes(o.id) && allowed(o.id)) out.push({ kind: 'swapDinner', index, from: d, to: o.id })
   })
-  for (const o of [null, ...optionsFor('evening').map((e) => e.id)])
+  for (const o of [null, ...optionsFor('evening').map((e) => e.id).filter(allowed)])
     if (o !== p.evening) out.push({ kind: 'evening', from: p.evening, to: o })
   for (const e of optionsFor('extra')) {
     if (p.extras.includes(e.id)) out.push({ kind: 'removeExtra', id: e.id })
-    else out.push({ kind: 'addExtra', id: e.id })
+    else if (allowed(e.id)) out.push({ kind: 'addExtra', id: e.id })
   }
   return out
 }
@@ -176,7 +176,8 @@ function distance(variants: Macros[], t: Targets) {
 }
 
 /** Fewest changes first (1, then 2). Up to `limit` suggestions that put every day on target. */
-export function suggestFixes(picks: Picks, portion: number, t: Targets, limit = 3): Suggestion[] {
+/** `allowed` limits which meals may be swapped/added in (e.g. only ones you can make with what you have). */
+export function suggestFixes(picks: Picks, portion: number, t: Targets, limit = 3, allowed?: (id: string) => boolean): Suggestion[] {
   if (!isComplete(picks)) return []
   const base = dayVariants(picks, portion)
   if (base.every((v) => checkDay(v, t).ok)) return []
@@ -212,7 +213,7 @@ export function suggestFixes(picks: Picks, portion: number, t: Targets, limit = 
     const next: { changes: Change[]; picks: Picks; d: number }[] = []
     for (const node of frontier) {
       const used = new Set(node.changes.map(slotOf))
-      for (const c of singleChanges(node.picks)) {
+      for (const c of singleChanges(node.picks, allowed)) {
         if (used.has(slotOf(c))) continue
         const p2 = applyChange(node.picks, c)
         if (p2.extras.length > 2) continue
