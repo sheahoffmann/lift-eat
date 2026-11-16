@@ -195,6 +195,8 @@ export function WorkoutView({
             available={settings.equipment[settings.equipmentProfile]}
             exclude={workout.plan.map((p) => p.ex)}
             current={workout.plan[swap]}
+            body={profile.body}
+            passcode={settings.aiPasscode}
             onSwap={async (ex, scope, custom) => {
               await swapInWorkout(workout, swap, ex, scope, custom)
               setSwap(null)

@@ -77,8 +77,10 @@ async function doSync(profile: Profile, passcode: string) {
     // ---- Push what's mine and not shared yet ----
     const labels = (await db.labelLibrary.toArray()).filter((l) => !l.addedBy || l.addedBy === me)
     const newLabels = labels.filter((l) => !pushed.has(`labels:${l.id}`)).map((l) => ({ ...l, addedBy: me }))
-    const exercises = (await db.customExercises.toArray()).filter((e) => !e.addedBy || e.addedBy === me)
-    const newExercises = exercises.filter((e) => !pushed.has(`exercises:${e.id}`)).map((e) => ({ ...e, addedBy: me }))
+    // Any exercise edited here gets shared (including fixes to someone else's).
+    const exercises = await db.customExercises.toArray()
+    const exKey = (e: CustomExercise) => `exercises:${e.id}@${e.updatedAt ?? e.createdAt}`
+    const newExercises = exercises.filter((e) => !pushed.has(exKey(e))).map((e) => ({ ...e, addedBy: e.addedBy ?? me }))
     const workouts = buildLibrary(await db.workouts.filter((w) => !!w.finishedAt && !w.cardio).toArray()).map(
       (e): SharedWorkout => ({
         id: lineupId(e.plan.map((p) => p.ex)),
@@ -96,7 +98,7 @@ async function doSync(profile: Profile, passcode: string) {
     if (newLabels.length) await call(passcode, 'POST', { kind: 'labels', items: newLabels })
     if (newWorkouts.length) await call(passcode, 'POST', { kind: 'workouts', items: newWorkouts })
     for (const l of newLabels) pushed.add(`labels:${l.id}`)
-    for (const e of newExercises) pushed.add(`exercises:${e.id}`)
+    for (const e of newExercises) pushed.add(exKey(e))
     for (const w of newWorkouts) pushed.add(`workouts:${w.id}@${w.timesDone}`)
     writeSet(PUSHED, pushed)
     // Mark my own items as mine locally.
@@ -107,8 +109,13 @@ async function doSync(profile: Profile, passcode: string) {
     const data = (await call(passcode, 'GET')) as { labels: LibraryLabel[]; exercises: CustomExercise[]; workouts: SharedWorkout[] }
     const haveLabels = new Set((await db.labelLibrary.toArray()).map((l) => l.id))
     await db.labelLibrary.bulkPut(data.labels.filter((l) => l && !haveLabels.has(l.id) && !hidden.has(`labels:${l.id}`)))
-    const haveEx = new Set((await db.customExercises.toArray()).map((e) => e.id))
-    await db.customExercises.bulkPut(data.exercises.filter((e) => e && !haveEx.has(e.id)))
+    const localEx = new Map((await db.customExercises.toArray()).map((e) => [e.id, e]))
+    const stamp = (e?: CustomExercise) => e?.updatedAt ?? e?.createdAt ?? ''
+    const incoming = data.exercises.filter((e) => e && (!localEx.has(e.id) || stamp(e) > stamp(localEx.get(e.id))))
+    await db.customExercises.bulkPut(incoming)
+    // Remember them as already shared so they aren't pushed straight back.
+    for (const e of incoming) pushed.add(exKey(e))
+    writeSet(PUSHED, pushed)
     await db.transaction('rw', db.sharedWorkouts, async () => {
       await db.sharedWorkouts.clear()
       await db.sharedWorkouts.bulkPut(data.workouts.filter((w) => w && w.addedBy !== me && !hidden.has(`workouts:${w.id}`)))

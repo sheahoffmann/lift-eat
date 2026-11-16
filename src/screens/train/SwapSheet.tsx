@@ -2,6 +2,7 @@
 import { useMemo, useState } from 'react'
 import { exercises } from '../../data/exercises'
 import { muscleNames, type MuscleSlug } from '../../anatomy/muscles'
+import { ExerciseFields, draftFrom, draftToFields, type ExerciseDraft } from './ExerciseFields'
 import type { CustomExercise, PlanItem } from '../../lib/db'
 import { saveCustomExercise, useCustomExercises } from '../../lib/customExercises'
 import type { CustomPrescription } from '../../lib/workoutStore'
@@ -15,12 +16,16 @@ export function SwapSheet({
   available,
   exclude,
   current,
+  body,
+  passcode,
   onSwap,
 }: {
   exerciseId: string
   available: Equipment[]
   exclude: string[]
   current: PlanItem
+  body: 'male' | 'female'
+  passcode?: string
   onSwap: (newEx: string, scope: 'today' | 'program', custom?: CustomPrescription) => void
 }) {
   const [reason, setReason] = useState<SwapReason | null>(null)
@@ -72,6 +77,8 @@ export function SwapSheet({
           preset={own === 'new' ? undefined : own}
           current={current}
           defaultMuscles={src?.primary ?? []}
+          body={body}
+          passcode={passcode}
           onCancel={() => setOwn(null)}
           onSave={async (ex, custom) => {
             const saved = await saveCustomExercise(ex)
@@ -128,41 +135,37 @@ export function SwapSheet({
   )
 }
 
-const logTypes: { key: CustomExercise['logType']; label: string }[] = [
-  { key: 'weighted', label: 'Weight × reps' },
-  { key: 'bodyweight', label: 'Reps only' },
-  { key: 'timed', label: 'Time' },
-  { key: 'distance', label: 'Distance' },
-]
-
 function OwnExerciseForm({
   preset,
   current,
   defaultMuscles,
+  body,
+  passcode,
   onCancel,
   onSave,
 }: {
   preset?: CustomExercise
   current: PlanItem
   defaultMuscles: MuscleSlug[]
+  body: 'male' | 'female'
+  passcode?: string
   onCancel: () => void
   onSave: (ex: Omit<CustomExercise, 'id' | 'createdAt'>, custom: CustomPrescription) => void
 }) {
-  const [name, setName] = useState(preset?.name ?? '')
-  const [logType, setLogType] = useState<CustomExercise['logType']>(preset?.logType ?? 'weighted')
+  const [draft, setDraft] = useState<ExerciseDraft>(() => draftFrom(preset, defaultMuscles))
   const [sets, setSets] = useState(current.sets)
   const [repsLo, setRepsLo] = useState(String(current.reps[0]))
   const [repsHi, setRepsHi] = useState(current.reps[1] !== current.reps[0] ? String(current.reps[1]) : '')
   const [seconds, setSeconds] = useState(String(current.seconds ?? 30))
   const [yards, setYards] = useState(String(current.yards ?? 40))
   const [weight, setWeight] = useState('')
-  const [muscles, setMuscles] = useState<MuscleSlug[]>((preset?.primary as MuscleSlug[]) ?? defaultMuscles)
   const [busy, setBusy] = useState(false)
 
+  const logType = draft.logType
   const lo = Math.max(1, Number(repsLo) || 0)
   const hi = Math.max(lo, Number(repsHi) || lo)
   const needsReps = logType === 'weighted' || logType === 'bodyweight'
-  const valid = name.trim().length > 0 && (!needsReps || Number(repsLo) > 0)
+  const valid = draft.name.trim().length > 0 && (!needsReps || Number(repsLo) > 0)
   const num = (v: string) => v.replace(/[^0-9.]/g, '')
 
   return (
@@ -172,38 +175,18 @@ function OwnExerciseForm({
         e.preventDefault()
         if (!valid || busy) return
         setBusy(true)
-        onSave(
-          { name, logType, primary: muscles },
-          {
-            sets,
-            reps: needsReps ? [lo, hi] : [1, 1],
-            seconds: logType === 'timed' ? Number(seconds) || 30 : undefined,
-            yards: logType === 'distance' ? Number(yards) || 40 : undefined,
-            startWeight: weight ? Number(weight) : undefined,
-          },
-        )
+        onSave(draftToFields(draft), {
+          sets,
+          reps: needsReps ? [lo, hi] : [1, 1],
+          seconds: logType === 'timed' ? Number(seconds) || 30 : undefined,
+          yards: logType === 'distance' ? Number(yards) || 40 : undefined,
+          startWeight: weight ? Number(weight) : undefined,
+        })
       }}
     >
-      <label className="stack gap-1">
-        <span className="caption" style={{ fontWeight: 600 }}>
-          Exercise name
-        </span>
-        <input className="field" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Hack squat" autoFocus={!preset} />
-      </label>
+      <ExerciseFields draft={draft} setDraft={setDraft} passcode={passcode} body={body} />
 
-      <div className="stack gap-1">
-        <span className="caption" style={{ fontWeight: 600 }}>
-          How you log it
-        </span>
-        <div className="tool-row" role="radiogroup" aria-label="How you log it">
-          {logTypes.map((t) => (
-            <button type="button" key={t.key} role="radio" aria-checked={logType === t.key} className={`chip ${logType === t.key ? 'chip--accent' : ''}`} onClick={() => setLogType(t.key)}>
-              {t.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
+      <span className="eyebrow">Today's sets</span>
       <div className="card card-row" style={{ padding: 'var(--s-2) var(--s-4)' }}>
         <span style={{ fontWeight: 600 }}>Sets</span>
         <div className="row" style={{ gap: 'var(--s-2)' }}>
@@ -260,23 +243,6 @@ function OwnExerciseForm({
             <input className="field num" inputMode="decimal" value={weight} onChange={(e) => setWeight(num(e.target.value))} placeholder={logType === 'bodyweight' ? '0' : 'e.g. 90'} />
           </label>
         )}
-      </div>
-
-      <div className="stack gap-1">
-        <span className="caption" style={{ fontWeight: 600 }}>
-          Muscles it works
-        </span>
-        <div className="tool-row" role="group" aria-label="Muscles it works">
-          {(Object.keys(muscleNames) as MuscleSlug[]).map((m) => {
-            const on = muscles.includes(m)
-            return (
-              <button type="button" key={m} aria-pressed={on} className={`chip ${on ? 'chip--accent' : ''}`} onClick={() => setMuscles(on ? muscles.filter((x) => x !== m) : [...muscles, m])}>
-                {muscleNames[m]}
-              </button>
-            )
-          })}
-        </div>
-        <span className="caption">Lights up your muscle map and balance, like the built-in exercises.</span>
       </div>
 
       <button className="btn btn--primary btn--block" type="submit" disabled={!valid || busy}>

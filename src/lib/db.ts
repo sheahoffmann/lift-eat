@@ -157,8 +157,14 @@ export type CustomExercise = {
   id: string // custom-…
   name: string
   logType: 'weighted' | 'bodyweight' | 'timed' | 'distance'
-  primary: string[] // muscle slugs
+  primary: string[] // muscle slugs (bright)
+  /** Supporting muscles (lighter on the figure). */
+  secondary?: string[]
+  cues?: [string, string, string]
+  mistake?: string
   createdAt: string
+  /** Last edit (newest wins when syncing). */
+  updatedAt?: string
   addedBy?: string
 }
 

@@ -9,6 +9,9 @@ import { db } from '../../lib/db'
 import { e1rm, effectiveLoad, formatSeconds } from '../../lib/training'
 import { Icon } from '../../components/Icon'
 import { haptic } from '../../lib/haptics'
+import { settingsOf, useProfile } from '../../lib/profile'
+import { updateCustomExercise } from '../../lib/customExercises'
+import { ExerciseFields, draftFrom, draftToFields, type ExerciseDraft } from './ExerciseFields'
 
 export function parseYouTube(url: string): { id: string; start: number } | null {
   try {
@@ -51,7 +54,39 @@ export function ExerciseDetail({
   const [url, setUrl] = useState('')
   const [start, setStart] = useState('')
 
+  const custom = useLiveQuery(() => (exerciseId.startsWith('custom-') ? db.customExercises.get(exerciseId) : undefined), [exerciseId])
+  const [profile] = useProfile()
+  const [draft, setDraft] = useState<ExerciseDraft | null>(null)
+  const [saving, setSaving] = useState(false)
+
   if (!ex) return <p className="sub">Exercise not found.</p>
+
+  if (draft && custom) {
+    return (
+      <form
+        className="stack gap-4"
+        onSubmit={async (e) => {
+          e.preventDefault()
+          if (!draft.name.trim() || saving) return
+          setSaving(true)
+          await updateCustomExercise(custom.id, draftToFields(draft))
+          haptic.success()
+          setSaving(false)
+          setDraft(null)
+        }}
+      >
+        <span className="title3">Edit exercise</span>
+        <ExerciseFields draft={draft} setDraft={setDraft} passcode={profile ? settingsOf(profile).aiPasscode : undefined} body={body} />
+        <button className="btn btn--primary btn--block" type="submit" disabled={!draft.name.trim() || saving}>
+          <Icon name="check" size={18} strokeWidth={2.6} /> Save changes
+        </button>
+        <button type="button" className="link-btn" style={{ alignSelf: 'center' }} onClick={() => setDraft(null)}>
+          Cancel
+        </button>
+        <p className="caption">Changes apply everywhere this exercise is used, including its history, and sync to everyone sharing the library.</p>
+      </form>
+    )
+  }
   const muscles = Object.fromEntries([...ex.primary.map((m) => [m, 1]), ...ex.secondary.map((m) => [m, 0.45])])
   const video = settings?.videoUrl ? parseYouTube(settings.videoUrl) : null
   const startAt = settings?.videoStart ?? video?.start ?? 0
@@ -92,6 +127,14 @@ export function ExerciseDetail({
           {ex.primary.map((m) => muscleNames[m]).join(', ')}
           {ex.secondary.length > 0 && <span className="muted"> · also {ex.secondary.map((m) => muscleNames[m]).join(', ')}</span>}
         </p>
+        {custom && (
+          <div className="row" style={{ gap: 'var(--s-3)', marginTop: 'var(--s-2)', alignItems: 'center' }}>
+            <button className="btn btn--secondary btn--sm" onClick={() => setDraft(draftFrom(custom))}>
+              <Icon name="pencil" size={14} /> Edit exercise
+            </button>
+            <span className="caption">{custom.addedBy && profile && custom.addedBy !== profile.name ? `Added by ${custom.addedBy}` : 'Your exercise'}</span>
+          </div>
+        )}
       </div>
 
       {target && (
