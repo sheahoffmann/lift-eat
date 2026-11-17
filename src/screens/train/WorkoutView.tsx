@@ -4,7 +4,8 @@ import { motion } from 'motion/react'
 import type { PR, SetLog, Workout } from '../../lib/db'
 import { exercises } from '../../data/exercises'
 import { effortCue, type Phase } from '../../data/programs'
-import { settingsOf, updateSettings, type EquipmentProfileKey, type Profile } from '../../lib/profile'
+import { settingsOf, todayISO, updateSettings, type EquipmentProfileKey, type Profile } from '../../lib/profile'
+import { dayLabel } from '../../components/DayPicker'
 import {
   applyEquipment,
   completeSet,
@@ -81,6 +82,8 @@ export function WorkoutView({
     return m
   }, [sets, workout.plan])
 
+  // Reopened from history, or logged on a past day: no live timer.
+  const editing = workout.durationSec != null || workout.date !== todayISO()
   const totalSets = workout.plan.reduce((n, p) => n + p.sets, 0)
   const doneSets = sets.length
 
@@ -114,7 +117,7 @@ export function WorkoutView({
           <div className="stack" style={{ alignItems: 'center', flex: 1 }}>
             <span style={{ fontWeight: 700 }}>{workout.name}</span>
             <span className="caption num">
-              {formatSeconds(elapsed)} · {doneSets}/{totalSets} sets
+              {editing ? `Editing ${dayLabel(workout.date)}` : formatSeconds(elapsed)} · {doneSets}/{totalSets} sets
             </span>
           </div>
           <button className="btn btn--primary btn--sm" onClick={() => setConfirmEnd(true)} disabled={finishing}>
@@ -224,11 +227,11 @@ export function WorkoutView({
       <Sheet open={confirmEnd} onClose={() => setConfirmEnd(false)} title="Finish workout?">
         <div className="stack gap-3">
           <p className="sub">
-            {doneSets} of {totalSets} sets logged in {formatSeconds(elapsed)}.
+            {doneSets} of {totalSets} sets logged{editing ? ` for ${dayLabel(workout.date)}` : ` in ${formatSeconds(elapsed)}`}.
             {doneSets < totalSets && ' Unfinished sets are fine. Showing up counts.'}
           </p>
           <button className="btn btn--primary btn--block" onClick={finish} disabled={finishing || doneSets === 0}>
-            Finish and see recap
+            {editing ? 'Save and see recap' : 'Finish and see recap'}
           </button>
           {doneSets === 0 && <p className="caption">Log at least one set first, or discard the workout.</p>}
           <button className="btn btn--secondary btn--block" onClick={() => setConfirmEnd(false)}>

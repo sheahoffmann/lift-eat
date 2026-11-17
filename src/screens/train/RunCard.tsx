@@ -10,7 +10,7 @@ import { openRun, showRecap } from '../../lib/ui'
 import { haptic } from '../../lib/haptics'
 import { Icon } from '../../components/Icon'
 
-export function RunCard({ profile, suggestedType }: { profile: Profile; suggestedType?: string }) {
+export function RunCard({ profile, suggestedType, date }: { profile: Profile; suggestedType?: string; date?: string }) {
   const live = useRunLive()
   const fileRef = useRef<HTMLInputElement>(null)
   const [msg, setMsg] = useState('')
@@ -96,6 +96,7 @@ export function RunCard({ profile, suggestedType }: { profile: Profile; suggeste
       <Sheet open={manual} onClose={() => setManual(false)} title="Log a run">
         {manual && (
           <ManualRunForm
+            initialDate={date}
             onSave={async (r) => {
               const w = await logManualRun(profile, r)
               haptic.success()
@@ -111,10 +112,10 @@ export function RunCard({ profile, suggestedType }: { profile: Profile; suggeste
 
 const runTypes = ['Run', 'Easy run', 'Treadmill', 'Trail run', 'Walk']
 
-function ManualRunForm({ onSave }: { onSave: (r: { date: string; type: string; miles: number; seconds: number }) => void }) {
+function ManualRunForm({ onSave, initialDate }: { onSave: (r: { date: string; type: string; miles: number; seconds: number }) => void; initialDate?: string }) {
   const today = todayISO()
   const yesterday = todayISO(new Date(Date.now() - 864e5))
-  const [date, setDate] = useState(today)
+  const [date, setDate] = useState(initialDate && initialDate < today ? initialDate : today)
   const [type, setType] = useState('Run')
   const [miles, setMiles] = useState('')
   const [h, setH] = useState('')

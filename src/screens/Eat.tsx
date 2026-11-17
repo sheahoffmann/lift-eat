@@ -29,9 +29,16 @@ import { SupplementsCard } from "./eat/Supplements"
 import { RebalanceCard } from "./eat/Rebalance"
 import { LabelScan } from "./eat/LabelScan"
 import { WeekReview } from "./eat/WeekReview"
+import { DayBar, dayLabel } from '../components/DayPicker'
+import { useLiveQuery } from 'dexie-react-hooks'
+import { db } from '../lib/db'
+import { addDays } from '../lib/eatStore'
 
 export function Eat({ profile }: { profile: Profile }) {
-  const date = todayISO()
+  const today = todayISO()
+  const [date, setDate] = useState(today)
+  const isToday = date >= today
+  const loggedDays = useLiveQuery(async () => new Set((await db.foodLog.toArray()).map((e) => e.date)), [], undefined)
   const plan = usePlanFor(date)
   const latest = useLatestPlan()
   const log = useDayLog(date)
@@ -43,7 +50,7 @@ export function Eat({ profile }: { profile: Profile }) {
 
   const loading = plan === undefined || log === undefined
   const meals = plan && log ? plannedMealsFor(plan, date, log) : []
-  const upNext = nextMeal(meals)
+  const upNext = isToday ? nextMeal(meals) : null
   const plannedEntryIds = new Set(meals.map((m) => m.entry?.id).filter(Boolean))
   const unplanned = (log ?? []).filter((e) => !plannedEntryIds.has(e.id))
   const t = totals(log ?? [])
@@ -52,7 +59,7 @@ export function Eat({ profile }: { profile: Profile }) {
     <main className="screen">
       <header className="card-row" style={{ alignItems: 'flex-end' }}>
         <div className="stack gap-1">
-          <span className="eyebrow">{plan ? 'Just follow the plan' : 'Plan once, then just follow it'}</span>
+          <span className="eyebrow">{!isToday ? 'Fixing a past day' : plan ? 'Just follow the plan' : 'Plan once, then just follow it'}</span>
           <h1 className="large-title">Eat</h1>
         </div>
         {plan && (
@@ -62,12 +69,30 @@ export function Eat({ profile }: { profile: Profile }) {
         )}
       </header>
 
-      <MacroGoals eaten={t} targets={macroTargets(profile)} calorieRange={calorieRange({ calories: profile.calorieTarget, protein: profile.proteinTarget })} />
+      <DayBar date={date} setDate={setDate} marks={loggedDays} />
+      {isToday && new Date().getHours() < 4 && (
+        <button className="link-btn" style={{ alignSelf: 'center', marginTop: 'calc(var(--s-2) * -1)' }} onClick={() => setDate(addDays(today, -1))}>
+          Still logging last night? Switch to yesterday
+        </button>
+      )}
+
+      <MacroGoals title={isToday ? "Today's goals" : `Goals · ${dayLabel(date)}`} eaten={t} targets={macroTargets(profile)} calorieRange={calorieRange({ calories: profile.calorieTarget, protein: profile.proteinTarget })} />
 
       <SupplementsCard profile={profile} date={date} />
 
       {loading ? (
         <div className="card" style={{ height: 220, opacity: 0.5 }} aria-busy="true" aria-label="Loading" />
+      ) : !plan && !isToday ? (
+        <>
+          <section className="card stack gap-2">
+            <span className="title3">No meal plan for this day</span>
+            <p className="sub">You can still log what you ate.</p>
+          </section>
+          <AlsoLogged entries={log ?? []} />
+          <button className="btn btn--secondary btn--block" onClick={() => setOther({ slot: 'other' })}>
+            <Icon name="plus" size={18} /> Log food for this day
+          </button>
+        </>
       ) : !plan ? (
         <section className="card card--hero card--glow">
           <div className="empty" style={{ padding: 'var(--s-6) var(--s-2)' }}>
@@ -86,8 +111,8 @@ export function Eat({ profile }: { profile: Profile }) {
         </section>
       ) : (
         <>
-          <RebalanceCard plan={plan} profile={profile} />
-          {!plan.shoppedAt && <GroceryCard plan={plan} onOpen={() => setGroceries(true)} />}
+          {isToday && <RebalanceCard plan={plan} profile={profile} />}
+          {isToday && !plan.shoppedAt && <GroceryCard plan={plan} onOpen={() => setGroceries(true)} />}
           <ol className="stack gap-3" style={{ listStyle: 'none', margin: 0, padding: 0 }}>
             {meals.map((m) => (
               <MealRow
@@ -107,31 +132,13 @@ export function Eat({ profile }: { profile: Profile }) {
             ))}
           </ol>
 
-          {unplanned.length > 0 && (
-            <section className="card" style={{ padding: 'var(--s-2) var(--s-4)' }} aria-label="Also logged">
-              <h2 className="eyebrow" style={{ padding: 'var(--s-2) 0 0' }}>
-                Also logged
-              </h2>
-              {unplanned.map((e) => (
-                <div key={e.id} className="g-row">
-                  <div className="stack" style={{ flex: 1, minWidth: 0 }}>
-                    <span style={{ fontWeight: 600 }}>{e.name}</span>
-                    <span className="caption num">
-                      {e.servings !== 1 && `${e.servings}× · `}
-                      {e.protein} g protein · {e.cal} cal
-                    </span>
-                  </div>
-                  <button className="link-btn" onClick={() => removeEntry(e.id)}>
-                    Remove
-                  </button>
-                </div>
-              ))}
-            </section>
-          )}
+          <AlsoLogged entries={unplanned} />
 
           <button className="btn btn--secondary btn--block" onClick={() => setOther({ slot: 'other' })}>
             <Icon name="plus" size={18} /> Log other food
           </button>
+          {isToday && (
+          <>
           <button className="btn btn--secondary btn--block" onClick={() => setScanning(true)}>
             <Icon name="camera" size={18} /> Scan grocery labels
           </button>
@@ -143,6 +150,8 @@ export function Eat({ profile }: { profile: Profile }) {
               Replan this week
             </button>
           </div>
+          </>
+          )}
         </>
       )}
 
@@ -169,6 +178,31 @@ export function Eat({ profile }: { profile: Profile }) {
         {other && <AteSomethingElse date={date} target={other} onDone={() => setOther(null)} />}
       </Sheet>
     </main>
+  )
+}
+
+function AlsoLogged({ entries }: { entries: { id: string; name: string; servings: number; protein: number; cal: number }[] }) {
+  if (!entries.length) return null
+  return (
+    <section className="card" style={{ padding: 'var(--s-2) var(--s-4)' }} aria-label="Also logged">
+      <h2 className="eyebrow" style={{ padding: 'var(--s-2) 0 0' }}>
+        Also logged
+      </h2>
+      {entries.map((e) => (
+        <div key={e.id} className="g-row">
+          <div className="stack" style={{ flex: 1, minWidth: 0 }}>
+            <span style={{ fontWeight: 600 }}>{e.name}</span>
+            <span className="caption num">
+              {e.servings !== 1 && `${e.servings}× · `}
+              {e.protein} g protein · {e.cal} cal
+            </span>
+          </div>
+          <button className="link-btn" onClick={() => removeEntry(e.id)}>
+            Remove
+          </button>
+        </div>
+      ))}
+    </section>
   )
 }
 

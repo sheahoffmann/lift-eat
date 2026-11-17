@@ -9,7 +9,10 @@ import { exercises } from '../data/exercises'
 import { Icon } from '../components/Icon'
 import { Sheet } from '../components/Sheet'
 import { haptic } from '../lib/haptics'
-import { logCardio, phaseOf, startWorkout, useActiveWorkout, useWorkoutHistory, useWorkoutsOn } from '../lib/workoutStore'
+import { discardWorkout, logCardio, phaseOf, reopenWorkout, startWorkout, useActiveWorkout, useWorkoutHistory, useWorkoutsOn } from '../lib/workoutStore'
+import { DayBar, dayLabel } from '../components/DayPicker'
+import { useLiveQuery } from 'dexie-react-hooks'
+import { db, type Workout } from '../lib/db'
 import { openRun, openWorkout, showRecap } from "../lib/ui"
 import { RunCard } from "./train/RunCard"
 import { daysBetween } from '../lib/season'
@@ -20,13 +23,22 @@ import { LibrarySheet, useLibrary } from './train/Library'
 
 export function Train({ profile }: { profile: Profile }) {
   const program = programs[profile.program]
-  const today = new Date().getDay()
+  const todayDate = todayISO()
+  const [date, setDateRaw] = useState(todayDate)
+  const isToday = date >= todayDate
+  const today = new Date(date + 'T12:00:00').getDay() // weekday of the day being logged
   const phase = phaseOf(profile)
   const settings = settingsOf(profile)
   const [day, setDay] = useState(today)
+  const setDate = (d: string) => {
+    setDateRaw(d)
+    setDay(new Date(d + 'T12:00:00').getDay())
+  }
   const session = sessionFor(program, day, phase)
   const active = useActiveWorkout()
-  const doneToday = useWorkoutsOn(todayISO())
+  const doneToday = useWorkoutsOn(date)
+  const trainedDays = useLiveQuery(async () => new Set((await db.workouts.filter((w) => !!w.finishedAt).toArray()).map((w) => w.date)), [], undefined)
+  const [busyMsg, setBusyMsg] = useState('')
   const history = useWorkoutHistory(30)
   const [cardioOpen, setCardioOpen] = useState(false)
   const [detail, setDetail] = useState<string | null>(null)
@@ -48,7 +60,14 @@ export function Train({ profile }: { profile: Profile }) {
     haptic.success()
     if (active) return openWorkout()
     if (session.kind !== 'lift') return setCardioOpen(true)
-    await startWorkout(profile, day)
+    await startWorkout(profile, day, date)
+    openWorkout()
+  }
+
+  async function edit(w: Workout) {
+    if (active && active.id !== w.id) return setBusyMsg(`Finish or discard "${active.name}" first, then edit this one.`)
+    haptic.light()
+    await reopenWorkout(w)
     openWorkout()
   }
 
@@ -56,13 +75,31 @@ export function Train({ profile }: { profile: Profile }) {
     <main className="screen">
       <header className="card-row" style={{ alignItems: 'flex-end' }}>
         <div className="stack gap-1">
-          <span className="eyebrow">{program.name}</span>
+          <span className="eyebrow">{isToday ? program.name : 'Fixing a past day'}</span>
           <h1 className="large-title">Train</h1>
         </div>
         <button className="btn btn--secondary btn--sm" onClick={() => setPickOpen(true)}>
           <Icon name="swap" size={15} /> Pick session
         </button>
       </header>
+
+      <DayBar date={date} setDate={setDate} marks={trainedDays} />
+
+      {doneToday.length > 0 && (
+        <section className="card" style={{ padding: 'var(--s-2) var(--s-4)' }} aria-label="Logged this day">
+          <h2 className="eyebrow" style={{ padding: 'var(--s-2) 0 0' }}>
+            Logged {isToday ? 'today' : dayLabel(date)}
+          </h2>
+          {doneToday.map((w) => (
+            <LoggedRow key={w.id} w={w} onRecap={() => showRecap(w)} onEdit={w.cardio ? undefined : () => edit(w)} />
+          ))}
+          {busyMsg && (
+            <p className="caption" role="status" style={{ padding: 'var(--s-2) 0', color: 'var(--danger, #e5484d)' }}>
+              {busyMsg}
+            </p>
+          )}
+        </section>
+      )}
 
       {active && (
         <button className="card card--glow" onClick={openWorkout} style={{ textAlign: 'left', outline: '2px solid var(--accent)', outlineOffset: -2 }}>
@@ -97,7 +134,7 @@ export function Train({ profile }: { profile: Profile }) {
           <div className="stack gap-2" style={{ flex: 1, minWidth: 0 }}>
             <span className="chip chip--accent" style={{ alignSelf: 'flex-start' }}>
               {dayNames[day]}
-              {day === today ? ' · Today' : ''}
+              {day === today ? (isToday ? ' · Today' : ` · ${dayLabel(date)}`) : ''}
               {isDeload ? ' · Deload' : ''}
             </span>
             <h2 className="title1">{session.name}</h2>
@@ -160,17 +197,18 @@ export function Train({ profile }: { profile: Profile }) {
             </div>
           ) : (
             <button className="btn btn--primary btn--block" style={{ marginTop: 'var(--s-4)' }} onClick={start}>
-              <Icon name="play" size={18} /> {active ? 'Continue workout' : session.kind === 'lift' ? 'Start workout' : 'Log it'}
+              <Icon name={isToday || active ? 'play' : 'plus'} size={18} />{' '}
+              {active ? 'Continue workout' : !isToday ? `Add to ${dayLabel(date)}` : session.kind === 'lift' ? 'Start workout' : 'Log it'}
             </button>
           )
         ) : (
           <p className="sub" style={{ marginTop: 'var(--s-3)' }}>
-            Recovery day. Pick another session above if you want to train anyway.
+            Recovery day. Tap Pick session (top right) if you {isToday ? 'want to train anyway' : 'trained this day'}.
           </p>
         )}
       </section>
 
-      <RunCard profile={profile} suggestedType={session.kind === "sprint" ? "Sprints + agility" : session.kind === "lift" ? "Easy run" : "Partner run"} />
+      <RunCard profile={profile} date={date} suggestedType={session.kind === "sprint" ? "Sprints + agility" : session.kind === "lift" ? "Easy run" : "Partner run"} />
 
       <button className="card card-row" onClick={() => setLibraryOpen(true)} style={{ textAlign: 'left', padding: 'var(--s-3) var(--s-4)', gap: 'var(--s-3)' }} aria-label="Workout library">
         <span className="icon-btn" style={{ width: 40, height: 40, flex: 'none', background: 'var(--accent-soft)', color: 'var(--accent)' }} aria-hidden>
@@ -274,7 +312,7 @@ export function Train({ profile }: { profile: Profile }) {
             openRun(session.kind === "sprint" ? "Sprints + agility" : "Partner run")
           }}
           onLog={async (c) => {
-            const w = await logCardio(profile, day, c)
+            const w = await logCardio(profile, day, c, date)
             setCardioOpen(false)
             showRecap(w)
           }}
@@ -316,6 +354,48 @@ export function Train({ profile }: { profile: Profile }) {
         </div>
       </Sheet>
     </main>
+  )
+}
+
+function LoggedRow({ w, onRecap, onEdit }: { w: Workout; onRecap: () => void; onEdit?: () => void }) {
+  const [confirm, setConfirm] = useState(false)
+  return (
+    <div className="g-row" style={{ flexWrap: 'wrap' }}>
+      <button className="stack" style={{ flex: 1, minWidth: 0, textAlign: 'left' }} onClick={onRecap} aria-label={`${w.name}: watch recap`}>
+        <span style={{ fontWeight: 600 }}>{w.name}</span>
+        <span className="caption num">
+          {w.cardio ? `${w.cardio.minutes} min ${w.cardio.type.toLowerCase()}${w.cardio.distanceMi ? ` · ${w.cardio.distanceMi} mi` : ''}` : `${w.setsDone ?? 0} sets · ${(w.volume ?? 0).toLocaleString()} lb`}
+        </span>
+      </button>
+      {confirm ? (
+        <div className="row" style={{ gap: 'var(--s-2)' }}>
+          <button className="link-btn" onClick={() => setConfirm(false)}>
+            Keep
+          </button>
+          <button
+            className="btn btn--sm"
+            style={{ background: 'var(--danger, #e5484d)', color: '#fff' }}
+            onClick={async () => {
+              haptic.light()
+              await discardWorkout(w)
+            }}
+          >
+            Delete
+          </button>
+        </div>
+      ) : (
+        <div className="row" style={{ gap: 'var(--s-1)' }}>
+          {onEdit && (
+            <button className="link-btn" onClick={onEdit}>
+              <Icon name="pencil" size={14} /> Edit
+            </button>
+          )}
+          <button className="link-btn" style={{ color: 'var(--text-2)' }} onClick={() => setConfirm(true)}>
+            Delete
+          </button>
+        </div>
+      )}
+    </div>
   )
 }
 

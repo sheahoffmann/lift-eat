@@ -52,10 +52,10 @@ export async function resolvePlan(profile: Profile, program: Program, day: numbe
 }
 
 /** Start any workout from a ready-made plan (library, past workouts). */
-export async function startWorkoutFrom(profile: Profile, from: { sessionKey: string; name: string; plan: PlanItem[] }) {
+export async function startWorkoutFrom(profile: Profile, from: { sessionKey: string; name: string; plan: PlanItem[] }, date = todayISO()) {
   const w: Workout = {
     id: uid(),
-    date: todayISO(),
+    date,
     sessionKey: from.sessionKey,
     name: from.name,
     kind: 'lift',
@@ -68,12 +68,13 @@ export async function startWorkoutFrom(profile: Profile, from: { sessionKey: str
   return w
 }
 
-export async function startWorkout(profile: Profile, day: number) {
+/** `date` lets you log a workout on a past day (it's filed under that day). */
+export async function startWorkout(profile: Profile, day: number, date = todayISO()) {
   const program = programs[profile.program]
   const { session, phase, plan } = await resolvePlan(profile, program, day)
   const w: Workout = {
     id: uid(),
-    date: todayISO(),
+    date,
     sessionKey: session.key,
     name: session.name,
     kind: session.kind,
@@ -218,15 +219,21 @@ export async function finishWorkout(w: Workout, cardio?: CardioLog) {
     if (ex) volume += setVolume(ex, s, s.bodyweight ?? bw, item?.perSide)
   }
   const finishedAt = new Date().toISOString()
-  const durationSec = cardio ? cardio.minutes * 60 : Math.round((Date.parse(finishedAt) - Date.parse(w.startedAt)) / 1000)
+  // A reopened workout keeps the time it originally took.
+  const durationSec = cardio ? cardio.minutes * 60 : (w.durationSec ?? Math.round((Date.parse(finishedAt) - Date.parse(w.startedAt)) / 1000))
   const patch: Partial<Workout> = { finishedAt, durationSec, volume, setsDone: sets.length, cardio }
   await db.workouts.update(w.id, patch)
   return { ...w, ...patch } as Workout
 }
 
+/** Open a finished workout again to add, change or remove sets. Finishing saves it back. */
+export async function reopenWorkout(w: Workout) {
+  await db.workouts.update(w.id, { finishedAt: undefined })
+}
+
 /** Log a cardio session in one step (no live tracking needed). */
-export async function logCardio(profile: Profile, day: number, cardio: CardioLog) {
-  const w = await startWorkout(profile, day)
+export async function logCardio(profile: Profile, day: number, cardio: CardioLog, date = todayISO()) {
+  const w = await startWorkout(profile, day, date)
   return finishWorkout(w, cardio)
 }
 
